@@ -41,7 +41,8 @@ namespace uBasic
         
         public static object? Interpret(this Parser.AstFunctionCall node, Runtime runtime)
         {
-            // ZZZ Fix me later
+            if (node.function != null)
+                return runtime.fnTable.Call(node.function.Name, node.args, runtime);
             return null;
         }
 
@@ -142,7 +143,11 @@ namespace uBasic
                 object? rhs = node.addExpression.Interpret(runtime);
                 if (lhs != null && rhs != null)
                 {
-                    if (lhs.GetType() == typeof(int) && rhs.GetType() == typeof(int))
+                    if (lhs.GetType() == typeof(string) && node.op != null && node.op.Type == Token_Type.TOKEN_ADD)
+                    {
+                        return (string)lhs + rhs.ToString();
+                    }
+                    else if (lhs.GetType() == typeof(int) && rhs.GetType() == typeof(int))
                     {
                         if (node.op?.Type == Token_Type.TOKEN_ADD)
                             return (int)lhs + (int)rhs;

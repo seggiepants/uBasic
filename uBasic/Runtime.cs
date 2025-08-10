@@ -10,15 +10,18 @@ namespace uBasic
     {
         public SymbolTable symbolTable;
         public Stack<object?> stack;
+        public FunctionTable fnTable;
 
         public Runtime()
         {
+            fnTable = new FunctionTable();
             symbolTable = new SymbolTable();
             stack = new Stack<object?>();
         }
 
         public void Clear()
         {
+            fnTable.Clear();
             symbolTable.Clear();
             stack.Clear();
         }

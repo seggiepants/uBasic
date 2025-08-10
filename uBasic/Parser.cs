@@ -750,7 +750,7 @@ namespace uBasic
 
         public class AstExpressionList : AstNode
         {
-            List<AstExpression>? expList;
+            public List<AstExpression>? expList;
 
             public AstExpressionList(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
