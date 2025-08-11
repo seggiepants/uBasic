@@ -34,7 +34,12 @@ namespace uBasic
         TOKEN_OR,
         TOKEN_AND,
         TOKEN_LET,
+        TOKEN_LIST,
+        TOKEN_RUN,
         TOKEN_STRING,
+        TOKEN_COMMENT,
+        TOKEN_COLON,
+        TOKEN_NEWLINE,
         TOKEN_WHITE_SPACE,
     }
     public class Token
@@ -48,8 +53,13 @@ namespace uBasic
     {
         List<Tuple<Token_Type, Regex>> matches = new List<Tuple<Token_Type, Regex>>()
         {
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_NEWLINE, new Regex(@"^( |\t)*(\r|\n)+")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_WHITE_SPACE, new Regex(@"^( |\t)+")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LET, new Regex(@"^let(?=( |\t|\r|\n))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LIST, new Regex(@"^list(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_RUN, new Regex(@"^run(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^'(?'comment'[^(\n|\r)]*)", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^REM(?=( |\t|\r|\n))(?'comment'[^(\n|\r)]*)")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_FLOAT, new Regex(@"^[+|-]?(\d+)?\.\d+")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_INTEGER, new Regex(@"^[+|-]?\d+")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_TRUE, new Regex(@"^true", RegexOptions.IgnoreCase)),
@@ -73,6 +83,7 @@ namespace uBasic
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_SET_EQUAL, new Regex(@"^=")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LESS_THAN, new Regex(@"^<")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_GREATER_THAN, new Regex(@"^>")),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COLON, new Regex(@"^:")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_STRING, new Regex(@"^""(?:[^""\\]|\\.)*""")),
         };
 
@@ -83,8 +94,8 @@ namespace uBasic
             int columnNumber = 1;
             while (index < input.Length)
             {
-                bool foundWS = false;
-                // Consume empty lines and whitespace.
+                /*bool foundWS = false;
+                // Consume empty lines and whitespace.                
                 do
                 {
                     foundWS = false;
@@ -110,7 +121,7 @@ namespace uBasic
                     }
 
                 } while (foundWS && index < input.Length);
-
+                */
                 bool foundMatch = false;
                 Token t = new();
                 int remainder = Math.Max(1, input.Length - index);
@@ -122,10 +133,10 @@ namespace uBasic
                     {                        
                         t.ColumnNumber = columnNumber;
                         t.LineNumber = lineNumber;
-                        t.Text = m.Value;
+                        t.Text = match.Item1 == Token_Type.TOKEN_COMMENT ? m.Groups["comment"].Value : m.Value;
                         t.Type = match.Item1;
                         columnNumber += t.Text.Length;
-                        index += t.Text.Length;
+                        index += m.Value.Length;
                         foundMatch = true;                        
                         break;
                     }

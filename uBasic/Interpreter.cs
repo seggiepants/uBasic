@@ -6,6 +6,29 @@ namespace uBasic
     public static class Interpreter
     {
         public static object? Interpret(this Parser.AstNode node, Runtime runtime) { return null; }
+
+        public static object? Interpret(this Parser.AstToken node, Runtime runtime)
+        {
+            if (node.Type == Token_Type.TOKEN_LIST)
+            {
+                StringBuilder sb = new();
+                foreach(KeyValuePair<int, Parser.AstStatements> line in runtime.program)
+                {
+                    sb.AppendLine($"{line.Key} {line.Value}");
+                }
+                return sb.ToString();
+            }
+            else if (node.Type == Token_Type.TOKEN_RUN)
+            {
+                object? result = null;
+                foreach (KeyValuePair<int, Parser.AstStatements> line in runtime.program)
+                {
+                    result = line.Value.Interpret(runtime);
+                }
+                return result;
+            }
+            return null;
+        }
         public static bool Interpret(this Parser.AstBoolean node, Runtime runtime) { return node.Value; }
         public static int Interpret(this Parser.AstInteger node, Runtime runtime) { return node.Value; }
         public static double Interpret(this Parser.AstFloat node, Runtime runtime) { return node.Value; }
@@ -358,6 +381,8 @@ namespace uBasic
         {
             if (node.stmtLet != null)
                 return node.stmtLet.Interpret(runtime);
+            else if (node.stmtComment != null)
+                return null; // Nothing to interpret
 
             return null;
         }
@@ -371,6 +396,50 @@ namespace uBasic
             object? value = node.expression.Interpret(runtime);
             runtime.symbolTable.Set(node.variable.Name, value);            
             return value;
+        }
+
+        public static object? Interpret(this Parser.AstComment node, Runtime runtime)
+        {
+            // Do nothing, it is a comment.
+            return null;
+        }
+
+        public static object? Interpret(this Parser.AstStatements node, Runtime runtime)
+        {
+            if (node.statements != null)
+            {
+                object? result = null;
+                foreach(AstStatement stmt in node.statements)
+                {
+                    result = stmt.Interpret(runtime);
+                }
+                return result;
+            }
+            return null;
+        }
+
+        public static object? Interpret(this Parser.AstLine node, Runtime runtime)
+        {
+            if (node.statements != null)
+            {
+                // Just interpret it.
+                return node.statements.Interpret(runtime);
+            }
+            return null;
+        }
+
+        public static object? Interpret(this Parser.AstLines node, Runtime runtime)
+        {
+            if (node.lines != null)
+            {
+                object? result = null;
+                foreach(AstLine line in node.lines)
+                {
+                    result = line.Interpret(runtime);
+                }
+                return result;
+            }
+            return null;
         }
     }
 }

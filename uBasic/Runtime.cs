@@ -11,12 +11,14 @@ namespace uBasic
         public SymbolTable symbolTable;
         public Stack<object?> stack;
         public FunctionTable fnTable;
+        public SortedList<int, Parser.AstStatements> program;
 
         public Runtime()
         {
             fnTable = new FunctionTable();
             symbolTable = new SymbolTable();
             stack = new Stack<object?>();
+            program = new SortedList<int, Parser.AstStatements>();
         }
 
         public void Clear()
@@ -24,6 +26,7 @@ namespace uBasic
             fnTable.Clear();
             symbolTable.Clear();
             stack.Clear();
+            program.Clear();
         }
     }
 }

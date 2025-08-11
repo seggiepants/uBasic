@@ -17,6 +17,12 @@ namespace uBasic
         }
         */
 
+        public static Tuple<int, Parser.AstToken?> ParseToken(List<Token> tokens, int Index)
+        {
+            Token t = tokens[Index];
+            Parser.AstToken val = new(t);
+            return new Tuple<int, Parser.AstToken?>(Index + 1, val);
+        }
         public static Tuple<int, Parser.AstValue?> ParseValue(List<Token> tokens, int Index)
         {
             /*
@@ -96,6 +102,16 @@ namespace uBasic
                 return new Tuple<int, Parser.AstValue?>(constant.Item1, val);
             }
             return new Tuple<int, Parser.AstValue?>(Index, null);
+        }
+
+        public static Tuple<int, Parser.AstComment?> ParseComent(List<Token> tokens, int Index)
+        {
+
+            if (tokens[Index].Type == Token_Type.TOKEN_COMMENT)
+            {
+                return new Tuple<int, Parser.AstComment?>(Index + 1, new Parser.AstComment(tokens[Index]));
+            }
+            return new Tuple<int, Parser.AstComment?>(Index, null);
         }
 
         public static Tuple<int, Parser.AstConstant?> ParseConstant(List<Token> tokens, int Index)
@@ -552,10 +568,19 @@ namespace uBasic
         
         public static Tuple<int, Parser.AstStatement?> ParseStatement(List<Token> tokens, int Index)
         {
+            Parser.AstStatement statement;
+
+            Tuple<int, Parser.AstComment?> comment = ParseComent(tokens, Index);
+            if (comment.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(comment.Item2);
+                return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
+            }
             Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index);
             if (let.Item2 != null)
             {
-                Parser.AstStatement statement = new Parser.AstStatement(tokens[Index]);
+                statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(let.Item2);
                 return new Tuple<int, Parser.AstStatement?>(let.Item1, statement);
             }
@@ -619,5 +644,121 @@ namespace uBasic
             return new Tuple<int, Parser.AstLet?>(i, statement);
         }
 
+        public static Tuple<int, Parser.AstStatements?> ParseStatements(List<Token> tokens, int Index)
+        {
+            /*
+             <Statements>  ::= <Statement> ':' <Statements>
+                            | <Statement
+             */
+            Parser.AstStatements statements = new(tokens[Index]);
+            int i = Index;
+            Tuple<int, Parser.AstStatement?> stmt = ParseStatement(tokens, i);
+            if (stmt.Item2 != null)
+            {
+                i = stmt.Item1;
+                statements.Add(stmt.Item2);
+                while (stmt.Item2 != null)
+                {
+                    stmt = new(Index, null); // So we don't loop on end of list.
+                    if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_COLON)
+                    {
+                        stmt = ParseStatement(tokens, i + 1);
+                        if (stmt.Item2 != null)
+                        {
+                            statements.Add(stmt.Item2);
+                            i = stmt.Item1;
+                        }
+                        else
+                        {
+                            throw new Exception($"Incomplete statements ':' followed by non-statment, Line: {tokens[i].LineNumber}, Column: {tokens[i].ColumnNumber}");
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                return new Tuple<int, Parser.AstStatements?>(Index, null);
+            }
+
+            return new Tuple<int, Parser.AstStatements?>(i, statements);
+        }
+
+        public static Tuple<int, Parser.AstLine?> ParseLine(List<Token> tokens, int Index)
+        {
+            /*
+             <Line>  ::= Integer? <Statements>
+                            | <Statement
+             */
+            int i = Index;
+            int? lineNumber = null;
+            if (tokens[i].Type == Token_Type.TOKEN_INTEGER)
+            {
+                lineNumber = Convert.ToInt32(tokens[i].Text);
+
+                Tuple<int, Parser.AstStatements?>statements = ParseStatements(tokens, i + 1);
+                if (statements.Item2 != null)
+                {
+                    Parser.AstLine line = new Parser.AstLine(tokens[i]);
+                    line.Set((int)lineNumber, statements.Item2);
+                    return new Tuple<int, Parser.AstLine?>(statements.Item1, line);
+                }
+            }
+            
+            i = Index;
+            Tuple<int, Parser.AstStatements?> stmts = ParseStatements(tokens, i);
+            if (stmts.Item2 != null)
+            {
+                Parser.AstLine line = new Parser.AstLine(tokens[i]);
+                line.Set(stmts.Item2);
+                return new Tuple<int, Parser.AstLine?>(stmts.Item1, line);
+            }
+            
+            return new Tuple<int, Parser.AstLine?>(Index, null);
+        }
+
+        public static Tuple<int, Parser.AstLines?> ParseLines(List<Token> tokens, int Index)
+        {
+            bool foundNewLine;
+            int i = Index;
+            Parser.AstLines lines = new(tokens[Index]);
+            do
+            {
+                foundNewLine = false;
+                Tuple<int, Parser.AstLine?> line = ParseLine(tokens, i);
+                if (line.Item2 != null)
+                {
+                    lines.Add(line.Item2);
+                    i = line.Item1;
+                }
+                else
+                {
+                    break;
+                }
+
+                while (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_WHITE_SPACE)
+                {
+                    i++;
+                }
+
+                if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_NEWLINE)
+                {
+                    foundNewLine = true;
+                    i++;
+                }
+            } while (foundNewLine);
+
+            if (lines.lines != null && lines.lines.Count > 0)
+            {
+                return new Tuple<int, Parser.AstLines?>(i, lines);
+            }
+            else
+            {
+                return new Tuple<int, Parser.AstLines?>(Index, null);
+            }
+        }
     }
 }
