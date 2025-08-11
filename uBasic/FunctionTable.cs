@@ -73,7 +73,6 @@ namespace uBasic
         // INSTR
         // INSTRREV
         // STRING/STRING$
-        // SPACE/SPACE$
         // REPLACE/REPLACE$
         // STRREVERSE/STRREVERSE$
         // LTRIM/LTRIM$
@@ -94,6 +93,7 @@ namespace uBasic
         // LOG -- natural logarithm
         // INPUT -> Move to parser level non-standard
         // PRINT -> Move to parser level non-standard
+        // RND -- Random number generator.
         // -- MORE TO COME --
 
         public static object? LEN(Stack<object?> stack)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 
@@ -804,19 +805,31 @@ namespace uBasic
 
         public class AstStatement : AstNode
         {
+            public AstComment? stmtComment;
             public AstLet? stmtLet;
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
+                stmtComment = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstComment? stmt)
+            {
+                stmtComment = stmt;
                 stmtLet = null;
             }
 
             public void Set(AstLet? stmt)
             {
-                this.stmtLet = stmt;
+                stmtComment = null;
+                stmtLet = stmt;
             }
 
             public AstNode? Get()
             {
+                if (stmtComment != null)
+                    return stmtComment;
+
                 if (stmtLet != null)
                     return stmtLet;
                 return null;
@@ -824,10 +837,151 @@ namespace uBasic
 
             public override string ToString()
             {
-                if (stmtLet != null)
+                if (stmtComment != null)
+                    return $"{stmtComment}";
+                else if (stmtLet != null)
                     return $"{stmtLet}";
                 return "null";
             }
-        }        
+        }
+
+        public class AstComment : AstNode
+        {
+            public Token comment;
+
+            public AstComment(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                comment = t;
+            }
+
+            public override string ToString()
+            {
+                return $"COMMENT({comment.Text})";
+            }
+
+        }
+        public class AstStatements : AstNode
+        {
+            public List<AstStatement>? statements;
+
+            public AstStatements(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                statements = null;
+            }
+
+            public AstNode? Get()
+            {
+                if (statements != null)
+                    return this;
+                return null;
+            }
+
+            public void Add(AstStatement stmt)
+            {
+                if (statements == null)
+                {
+                    statements = new List<AstStatement>();
+                }
+                statements.Add(stmt);
+            }
+
+            public void Set(List<AstStatement>? stmts)
+            {
+                statements = new List<AstStatement>();
+                if (stmts != null)
+                    statements.AddRange(stmts);
+            }
+
+            public override string ToString()
+            {
+                if (statements == null)
+                    return "";
+                StringBuilder sbStmt = new StringBuilder();
+                bool first = true;
+                foreach (AstStatement stmt in statements)
+                {
+                    if (first)
+                    {
+                        first = false;
+                    }
+                    else
+                    {
+                        sbStmt.Append(" : ");
+                    }
+                    sbStmt.Append($"{stmt}");
+                }
+                return sbStmt.ToString();
+            }
+        }
+
+        public class AstLine : AstNode
+        {
+            public int? line;
+            public AstStatements? statements;
+            public AstLine(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                statements = null;
+                line = null;
+            }
+
+            public void Set(AstStatements stmts)
+            {
+                line = null;
+                statements = stmts;
+            }
+
+            public void Set(int line, AstStatements stmts)
+            {
+                this.line = line;
+                statements = stmts;
+            }
+
+            public override string ToString()
+            {
+                if (statements != null && line != null)
+                    return $"{line} {statements}";
+                else if (statements != null)
+                    return $"{statements}";
+                return "null";
+            }
+        }
+
+        public class AstLines : AstNode
+        {
+            public List<AstLine>? lines;
+            public AstLines(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                lines = null;
+            }
+            public void Add(AstLine line)
+            {
+                if (lines == null)
+                    lines = new List<AstLine>();
+                lines.Add(line);
+            }
+
+            public void Set(List<AstLine>? body)
+            {
+                lines = new List<AstLine>();
+                if (body != null)
+                    lines.AddRange(body);
+            }
+
+            public override string ToString()
+            {
+                if (lines == null)
+                    return "null";
+
+                StringBuilder sb = new();
+                sb.AppendLine("LINES(");
+                foreach (AstLine line in lines)
+                {
+                    sb.AppendLine($"{line}");
+                }
+                sb.AppendLine(")");
+                return sb.ToString();
+            }
+
+        }
     }
 }

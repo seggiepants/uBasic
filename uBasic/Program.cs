@@ -28,11 +28,17 @@
                         Basic basic = new Basic();
                         for (int i = 0; i < tokens.Count; i++)
                         {
-                            Tuple<int, Parser.AstStatement?> stmt = Basic.ParseStatement(tokens, i);
-                            if (stmt.Item2 != null)
+                            Tuple<int, Parser.AstLines?> lines = Basic.ParseLines(tokens, i);
+                            if (lines.Item2 != null && lines.Item2.lines != null)
                             {
-                                Console.WriteLine(stmt.Item2.Interpret(runtime));
-                                i = stmt.Item1 - 1;
+                                foreach (Parser.AstLine line in lines.Item2.lines)
+                                {
+                                    if (line.line != null && line.statements != null)
+                                        runtime.program.Add((int)line.line, line.statements);
+                                    else
+                                        Console.WriteLine(line.Interpret(runtime));
+                                }
+                                i = lines.Item1 - 1;
                             }
                             else
                             {
@@ -45,7 +51,16 @@
                                 }
                                 else
                                 {
-                                    Console.WriteLine($"Unrecognized token/syntax error at Line: {tokens[i].LineNumber}, Column: {tokens[i].LineNumber} :: {tokens[i].Text}");
+                                    Tuple<int, Parser.AstToken?> parsedToken = Basic.ParseToken(tokens, i);
+                                    object? result = null;
+                                    if (parsedToken.Item2 != null)
+                                    {
+                                        result = parsedToken.Item2.Interpret(runtime);
+                                        if (result != null)
+                                            Console.WriteLine(result);
+                                    }
+                                    if (parsedToken == null || result == null)
+                                        Console.WriteLine($"Unrecognized token/syntax error at Line: {tokens[i].LineNumber}, Column: {tokens[i].LineNumber} :: {tokens[i].Text}");
                                 }
                             }
                         }
