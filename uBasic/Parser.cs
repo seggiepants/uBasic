@@ -806,22 +806,33 @@ namespace uBasic
         public class AstStatement : AstNode
         {
             public AstComment? stmtComment;
+            public AstIf? stmtIf;
             public AstLet? stmtLet;
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
+                stmtIf = null;
                 stmtLet = null;
             }
 
             public void Set(AstComment? stmt)
             {
                 stmtComment = stmt;
+                stmtIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstIf? stmt)
+            {
+                stmtComment = null;
+                stmtIf = stmt;
                 stmtLet = null;
             }
 
             public void Set(AstLet? stmt)
             {
                 stmtComment = null;
+                stmtIf = null;
                 stmtLet = stmt;
             }
 
@@ -829,6 +840,9 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return stmtComment;
+
+                if (stmtIf != null)
+                    return stmtIf;
 
                 if (stmtLet != null)
                     return stmtLet;
@@ -839,9 +853,11 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return $"{stmtComment}";
+                else if (stmtIf != null)
+                    return $"{stmtIf}";
                 else if (stmtLet != null)
                     return $"{stmtLet}";
-                return "null";
+                return "";
             }
         }
 
@@ -979,6 +995,154 @@ namespace uBasic
                     sb.AppendLine($"{line}");
                 }
                 sb.AppendLine(")");
+                return sb.ToString();
+            }
+
+        }
+
+        public class AstConditionAndLines : AstNode
+        {
+            public AstExpression? exp;
+            public AstLines? lines;
+            Token savedToken;
+            public AstConditionAndLines(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                savedToken = t;
+                exp = null;
+                lines = null;
+            }
+
+            public void Set(AstExpression exp)
+            {
+                this.exp = exp;
+            }
+
+            public void Set(AstExpression exp, AstLines body)
+            {
+                this.exp = exp;
+                this.lines = body;
+            }
+
+            public void Add(AstLine line)
+            {
+                if (lines == null)
+                    lines = new AstLines(savedToken);
+                lines.Add(line);
+            }
+
+            public void Set(List<AstLine>? body)
+            {
+                lines = new AstLines(savedToken);
+                if (body != null)
+                    lines.Set(body);
+            }
+
+            public override string ToString()
+            {
+                if (lines != null && lines.lines != null)
+                {
+                    StringBuilder sb = new();
+                    foreach (AstLine line in lines.lines)
+                    {
+                        sb.AppendLine($"{line}");
+                    }
+                    return sb.ToString();
+                }
+                else
+                    return "";
+            }
+
+        }
+
+        public class AstIf : AstNode
+        {
+            public AstExpression? exp;
+            public AstLines? lines;
+            public List<AstConditionAndLines>? elseIfClauses;
+            public AstLines? elseLines;
+            Token savedToken;
+            public AstIf(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                savedToken = t;
+                exp = null;
+                lines = null;
+                elseIfClauses = null;
+                elseLines = null;
+            }
+
+            public void Set(AstExpression exp)
+            {
+                this.exp = exp;
+                // Add the lines of the body separately.
+            }
+
+            public void AddThenLine(AstLine line)
+            {
+                if (lines == null)
+                    lines = new AstLines(savedToken);
+                lines.Add(line);
+            }
+
+            public void Set(AstExpression exp, AstLines body)
+            {
+                // If then endif
+                this.exp = exp;
+                this.lines = body;
+            }
+
+            public void AddElseIf(AstConditionAndLines elseifClause)
+            {
+                if (elseIfClauses == null)
+                    elseIfClauses = new List<AstConditionAndLines>();
+                elseIfClauses.Add(elseifClause);
+            }
+
+            public void AddElse(AstLines? lines)
+            {
+                elseLines = lines;
+            }
+
+            public void AddElseLine(AstLine line)
+            {
+                if (elseLines == null)
+                    elseLines = new AstLines(savedToken);
+                elseLines.Add(line);
+            }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"IF {exp} THEN");
+                if (lines != null && lines.lines != null)
+                {
+                    foreach(AstLine line in lines.lines)
+                    {
+                        sb.AppendLine($"{line}");
+                    }
+                }
+                if (elseIfClauses != null)
+                {
+                    foreach (AstConditionAndLines cond in elseIfClauses)
+                    {
+                        sb.AppendLine($"ELSEIF {cond.exp} THEN ");
+                        if (cond.lines != null && cond.lines.lines != null)
+                        {
+                            foreach (AstLine line in cond.lines.lines)
+                            {
+                                sb.AppendLine($"{line}");
+                            }
+                        }
+                    }
+                }
+                if (elseLines != null && elseLines.lines != null)
+                {
+                    sb.AppendLine($"ELSE");
+                    foreach (AstLine line in elseLines.lines)
+                    {
+                        sb.AppendLine($"{line}");
+                    }
+                }
+                sb.AppendLine("END IF");
                 return sb.ToString();
             }
 

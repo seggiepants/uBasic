@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -577,6 +578,15 @@ namespace uBasic
                 statement.Set(comment.Item2);
                 return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
             }
+
+            Tuple<int, Parser.AstIf?> ifStatement = ParseIfStatment(tokens, Index);
+            if (ifStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(ifStatement.Item2);
+                return new Tuple<int, Parser.AstStatement?>(ifStatement.Item1, statement);
+            }
+            
             Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index);
             if (let.Item2 != null)
             {
@@ -586,6 +596,120 @@ namespace uBasic
             }
             // ZZZ -- Add more, a lot more.
             return new Tuple<int, Parser.AstStatement?>(Index, null);
+        }
+        public static Tuple<int, Parser.AstIf?> ParseIfStatment(List<Token> tokens, int Index)
+        {
+            // IF <Expression> THEN <Statement> 
+            int i = Index;
+            Parser.AstExpression? cond = null;
+            Parser.AstIf ret = new(tokens[Index]);
+
+            Tuple<int, Parser.AstIf?>failure = new Tuple<int, Parser.AstIf?>(Index, null);
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_IF)
+            {
+                return failure;
+            }
+            // Consume IF
+            i++;
+
+            Tuple<int, Parser.AstExpression?> resultCond = ParseExpression(tokens, i);
+            if (resultCond.Item2 == null)
+            {
+                return failure;
+            }
+            cond = resultCond.Item2;
+            i = resultCond.Item1;
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
+            {
+                return failure;
+            }
+            // Consume then
+            i++;
+
+            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i);
+            if (resultLines.Item2 == null)
+            {
+                return failure;
+            }
+            ret.Set(cond, resultLines.Item2);
+            i = resultLines.Item1;
+
+            while (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ELSEIF)
+            {
+                Token savedToken = tokens[i];
+                i++; // eat the elseif
+                Tuple<int, Parser.AstExpression?> resultExp = ParseExpression(tokens, i);
+                if (resultExp.Item2 == null)
+                    return failure;
+
+                i = resultExp.Item1;
+
+                if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
+                    return failure;
+                i++; // eat the then
+                Tuple<int, Parser.AstLines?> resultElseIfLines = ParseLines(tokens, i);
+                if (resultElseIfLines.Item2 == null)
+                    return failure;
+                i = resultElseIfLines.Item1;
+                Parser.AstConditionAndLines condElseIf = new(savedToken);
+                condElseIf.Set(resultExp.Item2, resultElseIfLines.Item2);
+                ret.AddElseIf(condElseIf);
+            }
+
+            if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ELSE)
+            {
+                i++; // consume the ELSE
+                Tuple<int, Parser.AstLines?> resultElseLines = ParseLines(tokens, i);
+                if (resultElseLines.Item2 == null || resultElseLines.Item2.lines == null)
+                    return failure;
+                i = resultElseLines.Item1;
+                foreach(Parser.AstLine line in resultElseLines.Item2.lines)
+                {
+                    ret.AddElseLine(line);
+                }
+            }
+
+            // Must have end if when the body, else or elseif clauses have more than one line.
+            bool endIfRequired = false;
+            if (ret.lines != null && ret.lines.lines != null && ret.lines.lines.Count > 1)
+                endIfRequired = true;
+            else if (ret.elseLines != null && ret.elseLines.lines != null && ret.elseLines.lines.Count > 1)
+                endIfRequired = true;
+            else if (ret.elseIfClauses != null && ret.elseIfClauses.Count > 0)
+            {
+                foreach (Parser.AstConditionAndLines condLines in ret.elseIfClauses)
+                {
+                    if (condLines.lines != null && condLines.lines.lines != null && condLines.lines.lines.Count > 1)
+                    {
+                        endIfRequired = true;
+                    }
+                }
+            }
+
+            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_THEN))
+            {
+                if (endIfRequired)
+                    return failure;
+            }
+            else
+            {
+                // Consume end
+                i++;
+            }
+
+            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_THEN))
+            {
+                if (endIfRequired)
+                    return failure;
+            }
+            else
+            {
+                // Consume if
+                i++;
+            }
+
+            return new Tuple<int, Parser.AstIf?>(i, ret);
         }
 
         public static Tuple<int, Parser.AstLet?> ParseLetStatement(List<Token> tokens, int Index)

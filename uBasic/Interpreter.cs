@@ -381,6 +381,8 @@ namespace uBasic
         {
             if (node.stmtLet != null)
                 return node.stmtLet.Interpret(runtime);
+            else if (node.stmtIf != null)
+                return node.stmtIf.Interpret(runtime);
             else if (node.stmtComment != null)
                 return null; // Nothing to interpret
 
@@ -439,6 +441,71 @@ namespace uBasic
                 }
                 return result;
             }
+            return null;
+        }
+
+        private static bool CheckBool(object? value)
+        {
+            if (value == null)
+                return false;
+
+            if (value.GetType() == typeof(bool))
+                return (bool)value;
+
+            if (value.GetType() == typeof(int))
+                return (int)value > 0;
+
+
+            if (value.GetType() == typeof(double))
+                return (double)value > 0.0;
+
+            return false;
+        }
+
+        public static object? Interpret(this Parser.AstIf node, Runtime runtime)
+        {
+            if (node.exp == null)
+                return null;
+
+            object? result = node.exp.Interpret(runtime);
+            if (CheckBool(result))
+            {
+                if (node.lines == null || node.lines.lines == null)
+                    return null;
+
+                foreach (AstLine line in node.lines.lines)
+                {
+                    result = line.Interpret(runtime);
+                }
+                return result;
+            }
+            // Now check elseif
+            if (node.elseIfClauses != null && node.elseIfClauses.Count > 0)
+            {
+                foreach(Parser.AstConditionAndLines condLines in node.elseIfClauses)
+                {
+                    if (condLines.exp == null || condLines.lines == null)
+                        continue;
+                    result = condLines.exp.Interpret(runtime);
+                    if (CheckBool(result) && condLines.lines != null && condLines.lines.lines != null)
+                    {
+                        foreach (AstLine line in condLines.lines.lines)
+                        {
+                            result = line.Interpret(runtime);
+                        }
+                        return result;
+                    }
+                }
+            }
+
+            if (node.elseLines != null && node.elseLines.lines != null)
+            {
+                foreach (AstLine line in node.elseLines.lines)
+                {
+                    result = line.Interpret(runtime);
+                }
+                return result;
+            }    
             return null;
         }
     }
