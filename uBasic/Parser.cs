@@ -808,12 +808,14 @@ namespace uBasic
         {
             public AstComment? stmtComment;
             public AstFor? stmtFor;
+            public AstForNext? stmtForNext;
             public AstIf? stmtIf;
             public AstLet? stmtLet;
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
                 stmtFor = null;
+                stmtForNext = null;
                 stmtIf = null;
                 stmtLet = null;
             }
@@ -822,6 +824,7 @@ namespace uBasic
             {
                 stmtComment = stmt;
                 stmtFor = null;
+                stmtForNext = null;
                 stmtIf = null;
                 stmtLet = null;
             }
@@ -830,6 +833,16 @@ namespace uBasic
             {
                 stmtComment = null;
                 stmtFor = stmt;
+                stmtForNext = null;
+                stmtIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstForNext? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = stmt;
                 stmtIf = null;
                 stmtLet = null;
             }
@@ -838,6 +851,7 @@ namespace uBasic
             {
                 stmtComment = null;
                 stmtFor = null;
+                stmtForNext = null;
                 stmtIf = stmt;
                 stmtLet = null;
             }
@@ -846,6 +860,7 @@ namespace uBasic
             {
                 stmtComment = null;
                 stmtFor = null;
+                stmtForNext = null;
                 stmtIf = null;
                 stmtLet = stmt;
             }
@@ -857,6 +872,9 @@ namespace uBasic
 
                 if (stmtFor != null)
                     return stmtFor;
+
+                if (stmtForNext != null)
+                    return stmtForNext;
 
                 if (stmtIf != null)
                     return stmtIf;
@@ -872,6 +890,8 @@ namespace uBasic
                     return $"{stmtComment}";
                 else if (stmtFor != null)
                     return $"{stmtFor}";
+                else if (stmtForNext != null)
+                    return $"{stmtForNext}";
                 else if (stmtIf != null)
                     return $"{stmtIf}";
                 else if (stmtLet != null)
@@ -1177,16 +1197,16 @@ namespace uBasic
             public AstExpression? beginExp;
             public AstExpression? endExp;
             public int step;
-            public AstLines? lines;
-            Token savedToken;
+            public string label = "";
+            public bool calledFromNext;
+
             public AstFor(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
-                savedToken = t;
                 id = null;
                 beginExp = null;
                 endExp = null;
-                lines = null;
                 step = 1;
+                calledFromNext = false;
             }
 
             public void Set(AstVariable id, AstExpression beginExp, AstExpression endExp, int step = 1)
@@ -1198,28 +1218,39 @@ namespace uBasic
                 this.endExp = endExp;
             }
 
-            public void AddLine(AstLine line)
-            {
-                if (lines == null)
-                    lines = new AstLines(savedToken);
-                lines.Add(line);
-            }
-
             public override string ToString()
             {
                 StringBuilder sb = new StringBuilder();
                 string stepClause = step == 1 ? "": $" STEP {step}";
-                sb.AppendLine($"FOR {id} = {beginExp} TO {endExp}{stepClause}");
-                if (lines != null && lines.lines != null)
-                {
-                    foreach (AstLine line in lines.lines)
-                    {
-                        sb.AppendLine($"{line}");
-                    }
-                }
-                sb.AppendLine($"NEXT {id}");
-                
-                return sb.ToString();
+                return $"FOR {id} = {beginExp} TO {endExp}{stepClause}";
+            }
+
+        }
+        public class AstForNext : AstNode
+        {
+            /*
+                NEXT ID?                
+            */
+            public AstVariable? id;
+            public string label;
+            public string labelFor;
+            Token savedToken;
+            public AstForNext(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                savedToken = t;
+                id = null;
+                label = "";
+                labelFor = "";
+            }
+
+            public void Set(AstVariable? id)
+            {
+                this.id = id;
+            }
+
+            public override string ToString()
+            {
+                return this.id != null ? $"NEXT {id}" : "NEXT";
             }
 
         }
