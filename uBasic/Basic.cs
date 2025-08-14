@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 
 
@@ -579,6 +580,14 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
             }
 
+            Tuple<int, Parser.AstFor?> forStatement = ParseForStatment(tokens, Index);
+            if (forStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(forStatement.Item2);
+                return new Tuple<int, Parser.AstStatement?>(forStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstIf?> ifStatement = ParseIfStatment(tokens, Index);
             if (ifStatement.Item2 != null)
             {
@@ -597,6 +606,99 @@ namespace uBasic
             // ZZZ -- Add more, a lot more.
             return new Tuple<int, Parser.AstStatement?>(Index, null);
         }
+
+        public static Tuple<int, Parser.AstFor?> ParseForStatment(List<Token> tokens, int Index)
+        {
+            // FOR ID '=' <Expression> TO <Expression>     
+            // | FOR ID '=' < Expression > TO < Expression > STEP Integer
+            Parser.AstFor ret = new(tokens[Index]);
+            Tuple<int, Parser.AstFor?> failure = new Tuple<int, Parser.AstFor?>(Index, null);
+            int i = Index;
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_FOR)
+            {
+                return failure;
+            }            
+            i++; // Consume FOR
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+            {
+                return failure;
+            }
+            ret.id = new Parser.AstVariable(tokens[i]);
+            i++; // Consume ID
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_SET_EQUAL)
+            {
+                return failure;
+            }            
+            i++; // Consume =
+
+            Tuple<int, Parser.AstExpression?> resultExpBegin = ParseExpression(tokens, i);
+            if (resultExpBegin.Item2 == null)
+            {
+                return failure;
+            }
+            ret.beginExp = resultExpBegin.Item2;
+            i = resultExpBegin.Item1;
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_TO)
+            {
+                return failure;
+            }
+            // Consume TO
+            i++;
+
+            Tuple<int, Parser.AstExpression?> resultExpEnd = ParseExpression(tokens, i);
+            if (resultExpEnd.Item2 == null)
+            {
+                return failure;
+            }
+            ret.endExp = resultExpEnd.Item2;
+            i = resultExpEnd.Item1;
+
+            // Optional STEP
+            if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_STEP)
+            {
+                i++; // Consume STEP
+
+                if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_INTEGER)
+                {
+                    return failure;
+                }
+                Parser.AstInteger step = new Parser.AstInteger(tokens[i]);
+                ret.step = step.Value;
+                i++; // Consume STEP value
+            }
+
+            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i);
+            
+            if (resultLines.Item2 != null && resultLines.Item2.lines != null)
+            {
+                foreach (Parser.AstLine line in resultLines.Item2.lines)
+                    ret.AddLine(line);
+            }
+            else
+                return failure;
+
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_NEXT)
+                return failure;
+
+            i++; // Consume next.
+
+            if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_IDENTIFIER)
+            {
+                Parser.AstVariable nextId = new Parser.AstVariable(tokens[i]);
+                i++; // Consume variable.
+
+                if (ret.id != null && nextId.Name != ret.id.Name)
+                    return failure;
+            }
+
+            return new Tuple<int, Parser.AstFor?>(i, ret);
+        }
+
+
         public static Tuple<int, Parser.AstIf?> ParseIfStatment(List<Token> tokens, int Index)
         {
             // IF <Expression> THEN <Statement> 
@@ -687,7 +789,7 @@ namespace uBasic
                 }
             }
 
-            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_THEN))
+            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_END))
             {
                 if (endIfRequired)
                     return failure;
@@ -698,7 +800,7 @@ namespace uBasic
                 i++;
             }
 
-            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_THEN))
+            if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_IF))
             {
                 if (endIfRequired)
                     return failure;

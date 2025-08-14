@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace uBasic
@@ -806,11 +807,13 @@ namespace uBasic
         public class AstStatement : AstNode
         {
             public AstComment? stmtComment;
+            public AstFor? stmtFor;
             public AstIf? stmtIf;
             public AstLet? stmtLet;
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
+                stmtFor = null;
                 stmtIf = null;
                 stmtLet = null;
             }
@@ -818,6 +821,15 @@ namespace uBasic
             public void Set(AstComment? stmt)
             {
                 stmtComment = stmt;
+                stmtFor = null;
+                stmtIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstFor? stmt)
+            {
+                stmtComment = null;
+                stmtFor = stmt;
                 stmtIf = null;
                 stmtLet = null;
             }
@@ -825,6 +837,7 @@ namespace uBasic
             public void Set(AstIf? stmt)
             {
                 stmtComment = null;
+                stmtFor = null;
                 stmtIf = stmt;
                 stmtLet = null;
             }
@@ -832,6 +845,7 @@ namespace uBasic
             public void Set(AstLet? stmt)
             {
                 stmtComment = null;
+                stmtFor = null;
                 stmtIf = null;
                 stmtLet = stmt;
             }
@@ -840,6 +854,9 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return stmtComment;
+
+                if (stmtFor != null)
+                    return stmtFor;
 
                 if (stmtIf != null)
                     return stmtIf;
@@ -853,6 +870,8 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return $"{stmtComment}";
+                else if (stmtFor != null)
+                    return $"{stmtFor}";
                 else if (stmtIf != null)
                     return $"{stmtIf}";
                 else if (stmtLet != null)
@@ -1143,6 +1162,63 @@ namespace uBasic
                     }
                 }
                 sb.AppendLine("END IF");
+                return sb.ToString();
+            }
+
+        }
+
+        public class AstFor : AstNode
+        {
+            /*
+                FOR ID '=' <Expression> TO<Expression>     
+                | FOR ID '=' <Expression> TO<Expression> STEP Integer
+            */
+            public AstVariable? id;
+            public AstExpression? beginExp;
+            public AstExpression? endExp;
+            public int step;
+            public AstLines? lines;
+            Token savedToken;
+            public AstFor(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                savedToken = t;
+                id = null;
+                beginExp = null;
+                endExp = null;
+                lines = null;
+                step = 1;
+            }
+
+            public void Set(AstVariable id, AstExpression beginExp, AstExpression endExp, int step = 1)
+            {
+                // Add the lines of the body separately.
+                this.step = step;
+                this.id = id;
+                this.beginExp = beginExp;
+                this.endExp = endExp;
+            }
+
+            public void AddLine(AstLine line)
+            {
+                if (lines == null)
+                    lines = new AstLines(savedToken);
+                lines.Add(line);
+            }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                string stepClause = step == 1 ? "": $" STEP {step}";
+                sb.AppendLine($"FOR {id} = {beginExp} TO {endExp}{stepClause}");
+                if (lines != null && lines.lines != null)
+                {
+                    foreach (AstLine line in lines.lines)
+                    {
+                        sb.AppendLine($"{line}");
+                    }
+                }
+                sb.AppendLine($"NEXT {id}");
+                
                 return sb.ToString();
             }
 

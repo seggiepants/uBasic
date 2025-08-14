@@ -381,6 +381,8 @@ namespace uBasic
         {
             if (node.stmtLet != null)
                 return node.stmtLet.Interpret(runtime);
+            else if (node.stmtFor != null)
+                return node.stmtFor.Interpret(runtime);
             else if (node.stmtIf != null)
                 return node.stmtIf.Interpret(runtime);
             else if (node.stmtComment != null)
@@ -460,6 +462,51 @@ namespace uBasic
                 return (double)value > 0.0;
 
             return false;
+        }
+
+        public static object? Interpret(this Parser.AstFor node, Runtime runtime)
+        {
+            if (node.id == null || node.beginExp == null || node.endExp == null)
+                return null;
+
+            object? result = node.beginExp.Interpret(runtime);
+            runtime.symbolTable.Set(node.id.Name, result);
+            bool done = false;
+            do
+            {
+                if (node.lines != null && node.lines.lines != null)
+                {
+                    foreach (AstLine line in node.lines.lines)
+                    {
+                        result = line.Interpret(runtime);
+                    }
+                }
+
+                result = runtime.symbolTable.Get(node.id.Name);
+                if (result != null && result.GetType() == typeof(int))
+                    result = (int)result + node.step;
+                else if (result != null && result.GetType() == typeof(double))
+                    result = (double)result + node.step;
+                else
+                    throw new Exception($"Cannot perform numeric addition on variable \"{node.id.Name}\"");
+
+                runtime.symbolTable.Set(node.id.Name, result);
+
+                object? last = node.endExp.Interpret(runtime);
+
+                if (last != null && last.GetType() == typeof(int))
+                {
+                    done = (int)last == (int)result;
+                }
+                else if (last != null && last.GetType() == typeof(double))
+                {
+                    done = (double)last == (double)result;
+                }
+                else
+                    throw new Exception($"Cannont determine loop end condition");
+
+            } while (!done);
+            return result;
         }
 
         public static object? Interpret(this Parser.AstIf node, Runtime runtime)
