@@ -1,4 +1,8 @@
-﻿using System.Text;
+﻿using System.ComponentModel.Design;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
+using System.Security.Cryptography;
+using System.Text;
 using static uBasic.Parser;
 
 namespace uBasic
@@ -12,20 +16,30 @@ namespace uBasic
             if (node.Type == Token_Type.TOKEN_LIST)
             {
                 StringBuilder sb = new();
-                foreach(KeyValuePair<int, Parser.AstStatements> line in runtime.program)
+                for (int i = 0; i < runtime.program.Count; i++)
                 {
-                    sb.AppendLine($"{line.Key} {line.Value}");
+                    AstStatement stmt = runtime.program[i];
+                    if (runtime.lineLabels.ContainsValue(i))
+                    {
+                        string label = (from pair in runtime.lineLabels
+                                 where pair.Value == i
+                                 select pair.Key).First();
+                        sb.AppendLine(label + ":");
+                    }
+                    string lineNum = "";
+                    if (runtime.lineNumbers.ContainsValue(i))
+                    {
+                        lineNum = (from pair in runtime.lineNumbers
+                                        where pair.Value == i
+                                        select pair.Key).First().ToString() + " ";
+                    }
+                    sb.AppendLine($"{lineNum}{stmt}");
                 }
                 return sb.ToString();
             }
             else if (node.Type == Token_Type.TOKEN_RUN)
             {
-                object? result = null;
-                foreach (KeyValuePair<int, Parser.AstStatements> line in runtime.program)
-                {
-                    result = line.Value.Interpret(runtime);
-                }
-                return result;
+                return runtime.Run() ?? "OK";
             }
             return null;
         }
@@ -383,6 +397,8 @@ namespace uBasic
                 return node.stmtLet.Interpret(runtime);
             else if (node.stmtFor != null)
                 return node.stmtFor.Interpret(runtime);
+            else if (node.stmtForNext != null)
+                return node.stmtForNext.Interpret(runtime);
             else if (node.stmtIf != null)
                 return node.stmtIf.Interpret(runtime);
             else if (node.stmtComment != null)
@@ -413,8 +429,9 @@ namespace uBasic
             if (node.statements != null)
             {
                 object? result = null;
-                foreach(AstStatement stmt in node.statements)
+                for (int i = 0; i < node.statements.Count; i++) 
                 {
+                    AstStatement stmt = node.statements[i];
                     result = stmt.Interpret(runtime);
                 }
                 return result;
@@ -466,22 +483,17 @@ namespace uBasic
 
         public static object? Interpret(this Parser.AstFor node, Runtime runtime)
         {
+            const string FOR_PREFIX = "#FOR_";
+            const string NEXT_PREFIX = "#NEXT_";
+
             if (node.id == null || node.beginExp == null || node.endExp == null)
                 return null;
 
-            object? result = node.beginExp.Interpret(runtime);
-            runtime.symbolTable.Set(node.id.Name, result);
-            bool done = false;
-            do
+            object? result;
+            if (node.calledFromNext)
             {
-                if (node.lines != null && node.lines.lines != null)
-                {
-                    foreach (AstLine line in node.lines.lines)
-                    {
-                        result = line.Interpret(runtime);
-                    }
-                }
-
+                if (node.id == null)
+                    return null;
                 result = runtime.symbolTable.Get(node.id.Name);
                 if (result != null && result.GetType() == typeof(int))
                     result = (int)result + node.step;
@@ -489,24 +501,66 @@ namespace uBasic
                     result = (double)result + node.step;
                 else
                     throw new Exception($"Cannot perform numeric addition on variable \"{node.id.Name}\"");
-
                 runtime.symbolTable.Set(node.id.Name, result);
+            }
+            else
+            {
+                result = node.beginExp.Interpret(runtime);
+                runtime.symbolTable.Set(node.id.Name, result);
+            }
 
-                object? last = node.endExp.Interpret(runtime);
-
-                if (last != null && last.GetType() == typeof(int))
-                {
-                    done = (int)last == (int)result;
-                }
-                else if (last != null && last.GetType() == typeof(double))
-                {
-                    done = (double)last == (double)result;
-                }
+            object? last = node.endExp.Interpret(runtime);
+            bool done = false;
+            if (result != null && last != null && last.GetType() == typeof(int))
+            {
+                if (node.step > 0)
+                    done = (int)result > (int)last;
+                else if (node.step < 0)
+                    done = (int)result < (int)last;
                 else
-                    throw new Exception($"Cannont determine loop end condition");
+                    done = (int)result == (int)last;
+            }
+            else if (result != null && last != null && last.GetType() == typeof(double))
+            {
+                if (node.step > 0)
+                    done = (double)result > (double)last;
+                else if (node.step < 0)
+                    done = (double)result < (double)last;
+                else
+                    done = (double)result == (double)last;
+            }
+            else
+                throw new Exception($"Cannont determine loop end condition");
 
-            } while (!done);
+            if (done)
+            {
+                // jump to 1 past next.
+                string nextLabel = node.label.Replace(FOR_PREFIX, NEXT_PREFIX);
+                if (runtime.lineLabels.ContainsKey(nextLabel))
+                {
+                    runtime.instructionPointer = runtime.lineLabels[nextLabel] + 1;
+                }
+            }
+            node.calledFromNext = false;
             return result;
+        }
+
+        public static object? Interpret(this Parser.AstForNext node, Runtime runtime)
+        {
+            const string FOR_PREFIX = "#FOR_";
+            const string NEXT_PREFIX = "#NEXT_";
+            string forLabel = node.label.Replace(NEXT_PREFIX, FOR_PREFIX);
+            if (runtime.lineLabels.ContainsKey(forLabel))
+            {
+                int line = runtime.lineLabels[forLabel];
+                AstStatement? forStmt = runtime.program[line];
+                if (forStmt != null && forStmt.stmtFor != null)
+                {
+                    forStmt.stmtFor.calledFromNext = true;
+                    runtime.instructionPointer = line;
+                }
+            }
+            return null;
         }
 
         public static object? Interpret(this Parser.AstIf node, Runtime runtime)

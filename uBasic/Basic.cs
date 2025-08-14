@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -19,13 +20,13 @@ namespace uBasic
         }
         */
 
-        public static Tuple<int, Parser.AstToken?> ParseToken(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstToken?> ParseToken(List<Token> tokens, int Index, Runtime runtime)
         {
             Token t = tokens[Index];
             Parser.AstToken val = new(t);
             return new Tuple<int, Parser.AstToken?>(Index + 1, val);
         }
-        public static Tuple<int, Parser.AstValue?> ParseValue(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstValue?> ParseValue(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Value>       ::= '(' <Expression> ')'
@@ -38,7 +39,7 @@ namespace uBasic
 
             if (t.Type == Token_Type.TOKEN_LPAREN)
             {
-                Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, Index + 1);
+                Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, Index + 1, runtime);
                 if (expression.Item2 != null)
                 {
                     if (tokens[expression.Item1].Type == Token_Type.TOKEN_RPAREN)
@@ -65,7 +66,7 @@ namespace uBasic
                     bool readArgs = true;
                     while(readArgs)
                     {
-                        Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, i);
+                        Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, i, runtime);
                         if (expression.Item2 != null)
                         {
                             i = expression.Item1;
@@ -97,7 +98,7 @@ namespace uBasic
                     return new Tuple<int, Parser.AstValue?>(Index + 1, val);
                 }
             }
-            Tuple<int, Parser.AstConstant?> constant = ParseConstant(tokens, Index);
+            Tuple<int, Parser.AstConstant?> constant = ParseConstant(tokens, Index, runtime);
             if (constant.Item2 != null)
             {
                 val.Set(constant.Item2);
@@ -106,7 +107,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstValue?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstComment?> ParseComent(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstComment?> ParseComent(List<Token> tokens, int Index, Runtime runtime)
         {
 
             if (tokens[Index].Type == Token_Type.TOKEN_COMMENT)
@@ -116,7 +117,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstComment?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstConstant?> ParseConstant(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstConstant?> ParseConstant(List<Token> tokens, int Index, Runtime runtime)
         {
 
             switch (tokens[Index].Type)
@@ -131,7 +132,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstConstant?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstPowerExpression?> ParsePowerExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstPowerExpression?> ParsePowerExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Power Exp> '^' <Value> 
@@ -142,7 +143,7 @@ namespace uBasic
             Parser.AstPowerExpression? power = null;
 
             int i = Index;
-            lhs = ParseValue(tokens, i);
+            lhs = ParseValue(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 i = lhs.Item1;
@@ -154,7 +155,7 @@ namespace uBasic
             {
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_POWER)
                 {
-                    rhs = ParseValue(tokens, i + 1);
+                    rhs = ParseValue(tokens, i + 1, runtime);
                     if (rhs.Item2 != null)
                     {
                         // <Power Exp> '^' <Value>
@@ -176,7 +177,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstPowerExpression?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstNegateExpression?> ParseNegateExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstNegateExpression?> ParseNegateExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Negate Exp>  ::= '-' <Power Exp> 
@@ -190,7 +191,7 @@ namespace uBasic
                 negate = true;
                 i++;
             }
-            ret = ParsePowerExpression(tokens, i);
+            ret = ParsePowerExpression(tokens, i, runtime);
             if (ret.Item2 != null)
             {
                 Parser.AstNegateExpression negateExp = new(tokens[i]);
@@ -201,7 +202,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstNegateExpression?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstMultiplyExpression?> ParseMultiplyExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstMultiplyExpression?> ParseMultiplyExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Negate Exp> '*' <Mult Exp> 
@@ -211,7 +212,7 @@ namespace uBasic
             int i = Index;
             Stack<Parser.AstNegateExpression>? exps = null;
             Stack<Token>? ops = null;
-            Tuple<int, Parser.AstNegateExpression?> lhs = ParseNegateExpression(tokens, i);
+            Tuple<int, Parser.AstNegateExpression?> lhs = ParseNegateExpression(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 exps = new();
@@ -225,7 +226,7 @@ namespace uBasic
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_MULTIPLY || tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_DIVIDE)
                 {
                     Token op = tokens[i];
-                    lhs = ParseNegateExpression(tokens, i + 1);
+                    lhs = ParseNegateExpression(tokens, i + 1, runtime);
                     if (lhs.Item2 != null)
                     {
                         // <Negate Exp> '*' <Mult Exp> 
@@ -268,7 +269,7 @@ namespace uBasic
         }
 
 
-        public static Tuple<int, Parser.AstAddExpression?> ParseAddExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstAddExpression?> ParseAddExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Add Exp>  ::= <Mult Exp> '+' <Add Exp> 
@@ -278,7 +279,7 @@ namespace uBasic
             int i = Index;
             Stack<Parser.AstMultiplyExpression>? exps = null;
             Stack<Token>? ops = null;
-            Tuple<int, Parser.AstMultiplyExpression?> lhs = ParseMultiplyExpression(tokens, i);
+            Tuple<int, Parser.AstMultiplyExpression?> lhs = ParseMultiplyExpression(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 exps = new();
@@ -292,7 +293,7 @@ namespace uBasic
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ADD || tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_SUBTRACT)
                 {
                     Token op = tokens[i];
-                    lhs = ParseMultiplyExpression(tokens, i + 1);
+                    lhs = ParseMultiplyExpression(tokens, i + 1, runtime);
                     if (lhs.Item2 != null)
                     {
                         // <Mult Exp> '+' <Add Exp> 
@@ -334,7 +335,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstAddExpression?>(i, add);
         }
 
-        public static Tuple<int, Parser.AstCompareExpression?> ParseCompareExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstCompareExpression?> ParseCompareExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
             <Compare Exp> ::= <Add Exp> '='  <Compare Exp> 
@@ -349,7 +350,7 @@ namespace uBasic
             int i = Index;
             Stack<Parser.AstAddExpression>? exps = null;
             Stack<Token>? ops = null;
-            Tuple<int, Parser.AstAddExpression?> lhs = ParseAddExpression(tokens, i);
+            Tuple<int, Parser.AstAddExpression?> lhs = ParseAddExpression(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 exps = new();
@@ -372,7 +373,7 @@ namespace uBasic
                 if (tokens.Count > i && compareOps.Contains(tokens[i].Type))
                 {
                     Token op = tokens[i];
-                    lhs = ParseAddExpression(tokens, i + 1);
+                    lhs = ParseAddExpression(tokens, i + 1, runtime);
                     if (lhs.Item2 != null)
                     {
                         /*
@@ -421,7 +422,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstCompareExpression?>(i, compare);
         }
 
-        public static Tuple<int, Parser.AstNotExpression?> ParseNotExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstNotExpression?> ParseNotExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Not Exp>     ::= NOT <Compare Exp> 
@@ -435,7 +436,7 @@ namespace uBasic
                 negate = true;
                 i++;
             }
-            ret = ParseCompareExpression(tokens, i);
+            ret = ParseCompareExpression(tokens, i, runtime);
             if (ret.Item2 != null)
             {
                 Parser.AstNotExpression notExp = new(tokens[i]);
@@ -446,7 +447,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstNotExpression?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstAndExpression?> ParseAndExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstAndExpression?> ParseAndExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <And Exp>     ::= <Not Exp> AND <And Exp> 
@@ -454,7 +455,7 @@ namespace uBasic
              */
             int i = Index;
             Stack<Parser.AstNotExpression>? exps = null;
-            Tuple<int, Parser.AstNotExpression?> lhs = ParseNotExpression(tokens, i);
+            Tuple<int, Parser.AstNotExpression?> lhs = ParseNotExpression(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 exps = new();
@@ -467,7 +468,7 @@ namespace uBasic
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_AND)
                 {
                     Token op = tokens[i];
-                    lhs = ParseNotExpression(tokens, i + 1);
+                    lhs = ParseNotExpression(tokens, i + 1, runtime);
                     if (lhs.Item2 != null)
                     {
                         // <Not Exp> AND <And Exp> 
@@ -507,7 +508,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstAndExpression?>(i, combined);
         }
 
-        public static Tuple<int, Parser.AstExpression?> ParseExpression(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstExpression?> ParseExpression(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Expression>  ::= <And Exp> OR <Expression> 
@@ -515,7 +516,7 @@ namespace uBasic
              */
             int i = Index;
             Stack<Parser.AstAndExpression>? exps = null;
-            Tuple<int, Parser.AstAndExpression?> lhs = ParseAndExpression(tokens, i);
+            Tuple<int, Parser.AstAndExpression?> lhs = ParseAndExpression(tokens, i, runtime);
             if (lhs.Item2 != null)
             {
                 exps = new();
@@ -528,7 +529,7 @@ namespace uBasic
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_OR)
                 {
                     Token op = tokens[i];
-                    lhs = ParseAndExpression(tokens, i + 1);
+                    lhs = ParseAndExpression(tokens, i + 1, runtime);
                     if (lhs.Item2 != null)
                     {
                         // <Not Exp> AND <And Exp> 
@@ -568,49 +569,68 @@ namespace uBasic
             return new Tuple<int, Parser.AstExpression?>(i, combined);
         }
         
-        public static Tuple<int, Parser.AstStatement?> ParseStatement(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstStatement?> ParseStatement(List<Token> tokens, int Index, Runtime runtime)
         {
             Parser.AstStatement statement;
 
-            Tuple<int, Parser.AstComment?> comment = ParseComent(tokens, Index);
+            Tuple<int, Parser.AstComment?> comment = ParseComent(tokens, Index, runtime);
             if (comment.Item2 != null)
             {
                 statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(comment.Item2);
+                runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
             }
 
-            Tuple<int, Parser.AstFor?> forStatement = ParseForStatment(tokens, Index);
+            Tuple<int, Parser.AstFor?> forStatement = ParseForStatment(tokens, Index, runtime);
             if (forStatement.Item2 != null)
             {
                 statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(forStatement.Item2);
+                int lineNum = runtime.program.Count;
+                runtime.lineLabels.Add(forStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(forStatement.Item1, statement);
             }
 
-            Tuple<int, Parser.AstIf?> ifStatement = ParseIfStatment(tokens, Index);
+            Tuple<int, Parser.AstForNext?> forNextStatement = ParseForNextStatement(tokens, Index, runtime);
+            if (forNextStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(forNextStatement.Item2);
+                int lineNum = runtime.program.Count;
+                runtime.lineLabels.Add(forNextStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(forNextStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstIf?> ifStatement = ParseIfStatment(tokens, Index, runtime);
             if (ifStatement.Item2 != null)
             {
                 statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(ifStatement.Item2);
+                // ZZZ fixme
                 return new Tuple<int, Parser.AstStatement?>(ifStatement.Item1, statement);
             }
             
-            Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index);
+            Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index, runtime);
             if (let.Item2 != null)
             {
                 statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(let.Item2);
+                runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(let.Item1, statement);
             }
             // ZZZ -- Add more, a lot more.
             return new Tuple<int, Parser.AstStatement?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstFor?> ParseForStatment(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstFor?> ParseForStatment(List<Token> tokens, int Index, Runtime runtime)
         {
             // FOR ID '=' <Expression> TO <Expression>     
             // | FOR ID '=' < Expression > TO < Expression > STEP Integer
+            const string FOR_PREFIX = "#FOR_";
+
             Parser.AstFor ret = new(tokens[Index]);
             Tuple<int, Parser.AstFor?> failure = new Tuple<int, Parser.AstFor?>(Index, null);
             int i = Index;
@@ -634,7 +654,7 @@ namespace uBasic
             }            
             i++; // Consume =
 
-            Tuple<int, Parser.AstExpression?> resultExpBegin = ParseExpression(tokens, i);
+            Tuple<int, Parser.AstExpression?> resultExpBegin = ParseExpression(tokens, i, runtime);
             if (resultExpBegin.Item2 == null)
             {
                 return failure;
@@ -649,7 +669,7 @@ namespace uBasic
             // Consume TO
             i++;
 
-            Tuple<int, Parser.AstExpression?> resultExpEnd = ParseExpression(tokens, i);
+            Tuple<int, Parser.AstExpression?> resultExpEnd = ParseExpression(tokens, i, runtime);
             if (resultExpEnd.Item2 == null)
             {
                 return failure;
@@ -671,35 +691,51 @@ namespace uBasic
                 i++; // Consume STEP value
             }
 
-            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i);
+            int idFor = runtime.NextCounter();
+            string labelFor = $"{FOR_PREFIX}_{idFor}";
+            ret.label = labelFor;
+            runtime.forStack.Push(idFor);
             
-            if (resultLines.Item2 != null && resultLines.Item2.lines != null)
-            {
-                foreach (Parser.AstLine line in resultLines.Item2.lines)
-                    ret.AddLine(line);
-            }
-            else
-                return failure;
+            return new Tuple<int, Parser.AstFor?>(i, ret);
+        }
 
+        public static Tuple<int, Parser.AstForNext?> ParseForNextStatement(List<Token> tokens, int Index, Runtime runtime)
+        {
+            const string FOR_PREFIX = "#FOR_";
+            const string NEXT_PREFIX = "#NEXT_";
+            // NEXT <identifier>?
+            int i = Index;
+            Parser.AstForNext ret = new(tokens[i]);
+            Tuple<int, Parser.AstForNext?> failure = new Tuple<int, Parser.AstForNext?>(i, null);
+            
             if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_NEXT)
                 return failure;
 
             i++; // Consume next.
+
+            int idFor = runtime.forStack.Count > 0 ? runtime.forStack.Pop() : 0;
+            string labelFor = $"{FOR_PREFIX}_{idFor}";
+            string labelNext = $"{NEXT_PREFIX}_{idFor}";
+            ret.labelFor = labelFor;
+            ret.label = labelNext;
 
             if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_IDENTIFIER)
             {
                 Parser.AstVariable nextId = new Parser.AstVariable(tokens[i]);
                 i++; // Consume variable.
 
-                if (ret.id != null && nextId.Name != ret.id.Name)
+                Parser.AstFor? stmtFor = runtime.program[runtime.lineLabels[labelFor]].stmtFor;
+
+                // Make sure it matches
+                if (ret.id != null && stmtFor != null && stmtFor.id != null && stmtFor.id.Name != ret.id.Name)
                     return failure;
             }
 
-            return new Tuple<int, Parser.AstFor?>(i, ret);
+            return new Tuple<int, Parser.AstForNext?>(i, ret);
         }
 
 
-        public static Tuple<int, Parser.AstIf?> ParseIfStatment(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstIf?> ParseIfStatment(List<Token> tokens, int Index, Runtime runtime)
         {
             // IF <Expression> THEN <Statement> 
             int i = Index;
@@ -714,7 +750,7 @@ namespace uBasic
             // Consume IF
             i++;
 
-            Tuple<int, Parser.AstExpression?> resultCond = ParseExpression(tokens, i);
+            Tuple<int, Parser.AstExpression?> resultCond = ParseExpression(tokens, i, runtime);
             if (resultCond.Item2 == null)
             {
                 return failure;
@@ -729,7 +765,7 @@ namespace uBasic
             // Consume then
             i++;
 
-            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i);
+            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i, runtime);
             if (resultLines.Item2 == null)
             {
                 return failure;
@@ -741,7 +777,7 @@ namespace uBasic
             {
                 Token savedToken = tokens[i];
                 i++; // eat the elseif
-                Tuple<int, Parser.AstExpression?> resultExp = ParseExpression(tokens, i);
+                Tuple<int, Parser.AstExpression?> resultExp = ParseExpression(tokens, i, runtime);
                 if (resultExp.Item2 == null)
                     return failure;
 
@@ -750,7 +786,7 @@ namespace uBasic
                 if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
                     return failure;
                 i++; // eat the then
-                Tuple<int, Parser.AstLines?> resultElseIfLines = ParseLines(tokens, i);
+                Tuple<int, Parser.AstLines?> resultElseIfLines = ParseLines(tokens, i, runtime);
                 if (resultElseIfLines.Item2 == null)
                     return failure;
                 i = resultElseIfLines.Item1;
@@ -762,7 +798,7 @@ namespace uBasic
             if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ELSE)
             {
                 i++; // consume the ELSE
-                Tuple<int, Parser.AstLines?> resultElseLines = ParseLines(tokens, i);
+                Tuple<int, Parser.AstLines?> resultElseLines = ParseLines(tokens, i, runtime);
                 if (resultElseLines.Item2 == null || resultElseLines.Item2.lines == null)
                     return failure;
                 i = resultElseLines.Item1;
@@ -814,7 +850,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstIf?>(i, ret);
         }
 
-        public static Tuple<int, Parser.AstLet?> ParseLetStatement(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstLet?> ParseLetStatement(List<Token> tokens, int Index, Runtime runtime)
         {
             // LET Id '=' <Expression>
 
@@ -853,7 +889,7 @@ namespace uBasic
             }
 
             // Expression.
-            Tuple<int, Parser.AstExpression?> result = ParseExpression(tokens, i);
+            Tuple<int, Parser.AstExpression?> result = ParseExpression(tokens, i, runtime);
             if (result.Item2 != null)
             {
                 expression = result.Item2;
@@ -870,7 +906,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstLet?>(i, statement);
         }
 
-        public static Tuple<int, Parser.AstStatements?> ParseStatements(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstStatements?> ParseStatements(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Statements>  ::= <Statement> ':' <Statements>
@@ -878,7 +914,7 @@ namespace uBasic
              */
             Parser.AstStatements statements = new(tokens[Index]);
             int i = Index;
-            Tuple<int, Parser.AstStatement?> stmt = ParseStatement(tokens, i);
+            Tuple<int, Parser.AstStatement?> stmt = ParseStatement(tokens, i, runtime);
             if (stmt.Item2 != null)
             {
                 i = stmt.Item1;
@@ -888,7 +924,7 @@ namespace uBasic
                     stmt = new(Index, null); // So we don't loop on end of list.
                     if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_COLON)
                     {
-                        stmt = ParseStatement(tokens, i + 1);
+                        stmt = ParseStatement(tokens, i + 1, runtime);
                         if (stmt.Item2 != null)
                         {
                             statements.Add(stmt.Item2);
@@ -913,7 +949,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstStatements?>(i, statements);
         }
 
-        public static Tuple<int, Parser.AstLine?> ParseLine(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstLine?> ParseLine(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
              <Line>  ::= Integer? <Statements>
@@ -925,7 +961,7 @@ namespace uBasic
             {
                 lineNumber = Convert.ToInt32(tokens[i].Text);
 
-                Tuple<int, Parser.AstStatements?>statements = ParseStatements(tokens, i + 1);
+                Tuple<int, Parser.AstStatements?>statements = ParseStatements(tokens, i + 1, runtime);
                 if (statements.Item2 != null)
                 {
                     Parser.AstLine line = new Parser.AstLine(tokens[i]);
@@ -935,7 +971,7 @@ namespace uBasic
             }
             
             i = Index;
-            Tuple<int, Parser.AstStatements?> stmts = ParseStatements(tokens, i);
+            Tuple<int, Parser.AstStatements?> stmts = ParseStatements(tokens, i, runtime);
             if (stmts.Item2 != null)
             {
                 Parser.AstLine line = new Parser.AstLine(tokens[i]);
@@ -946,7 +982,7 @@ namespace uBasic
             return new Tuple<int, Parser.AstLine?>(Index, null);
         }
 
-        public static Tuple<int, Parser.AstLines?> ParseLines(List<Token> tokens, int Index)
+        public static Tuple<int, Parser.AstLines?> ParseLines(List<Token> tokens, int Index, Runtime runtime)
         {
             bool foundNewLine;
             int i = Index;
@@ -954,7 +990,7 @@ namespace uBasic
             do
             {
                 foundNewLine = false;
-                Tuple<int, Parser.AstLine?> line = ParseLine(tokens, i);
+                Tuple<int, Parser.AstLine?> line = ParseLine(tokens, i, runtime);
                 if (line.Item2 != null)
                 {
                     lines.Add(line.Item2);

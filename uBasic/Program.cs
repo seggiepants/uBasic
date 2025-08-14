@@ -8,7 +8,11 @@
             
             bool EOF = false;
             Lexer lex = new();
-            Runtime runtime = new Runtime();
+            Runtime runtime;
+            Runtime program = new Runtime();
+            Runtime repl = new Runtime();
+            repl.symbolTable = program.symbolTable;
+
             while (!EOF)
             {
                 Console.Write("> ");
@@ -28,21 +32,34 @@
                         Basic basic = new Basic();
                         for (int i = 0; i < tokens.Count; i++)
                         {
-                            Tuple<int, Parser.AstLines?> lines = Basic.ParseLines(tokens, i);
-                            if (lines.Item2 != null && lines.Item2.lines != null)
+                            if (tokens[i].Type == Token_Type.TOKEN_INTEGER || tokens[i].Type == Token_Type.TOKEN_LIST || tokens[i].Type == Token_Type.TOKEN_RUN)
+                                runtime = program;
+                            else
                             {
-                                foreach (Parser.AstLine line in lines.Item2.lines)
+                                runtime = repl;
+                                repl.program.Clear();
+                                repl.stack.Clear();
+                            }
+
+                            int lineNum = runtime.program.Count;
+                            Tuple<int, Parser.AstLine?> line = Basic.ParseLine(tokens, i, runtime);
+                            if (line.Item2 != null && line.Item2 != null)
+                            {
+                                if (line.Item2.statements != null && line.Item2.statements.statements != null)
                                 {
-                                    if (line.line != null && line.statements != null)
-                                        runtime.program.Add((int)line.line, line.statements);
+                                    if (line.Item2.line != null)
+                                        runtime.lineNumbers.Add((int)line.Item2.line, lineNum);
                                     else
-                                        Console.WriteLine(line.Interpret(runtime));
+                                        //Console.WriteLine(line.Item2.Interpret(runtime));
+                                        Console.WriteLine(runtime.Run());
                                 }
-                                i = lines.Item1 - 1;
+                                //else
+                                    //Console.WriteLine(line.Item2.Interpret(runtime));
+                                i = line.Item1 - 1;
                             }
                             else
                             {
-                                Tuple<int, Parser.AstExpression?> node = Basic.ParseExpression(tokens, i);
+                                Tuple<int, Parser.AstExpression?> node = Basic.ParseExpression(tokens, i, runtime);
                                 if (node.Item2 != null)
                                 {
                                     //Console.WriteLine(node.Item2);
@@ -51,7 +68,7 @@
                                 }
                                 else
                                 {
-                                    Tuple<int, Parser.AstToken?> parsedToken = Basic.ParseToken(tokens, i);
+                                    Tuple<int, Parser.AstToken?> parsedToken = Basic.ParseToken(tokens, i, runtime);
                                     object? result = null;
                                     if (parsedToken.Item2 != null)
                                     {
