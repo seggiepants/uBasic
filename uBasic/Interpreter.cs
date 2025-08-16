@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using static uBasic.Parser;
@@ -9,6 +10,16 @@ namespace uBasic
 {
     public static class Interpreter
     {
+        const string OK = "OK";
+        const string FOR_PREFIX = "#FOR_";
+        const string NEXT_PREFIX = "#NEXT_";
+
+        const string IF_PREFIX = "#IF_";
+        const string IF_ELSE_IF_PREFIX = "#ELIF_";
+        const string IF_ELSE_PREFIX = "#ELSE_";
+        const string IF_END_IF_PREFIX = "#ENDIF_";
+        const string IF_END_IF_SINGLE_PREFIX = "#ENDIF_SINGLE_";
+
         public static object? Interpret(this Parser.AstNode node, Runtime runtime) { return null; }
 
         public static object? Interpret(this Parser.AstToken node, Runtime runtime)
@@ -399,8 +410,16 @@ namespace uBasic
                 return node.stmtFor.Interpret(runtime);
             else if (node.stmtForNext != null)
                 return node.stmtForNext.Interpret(runtime);
+            else if (node.stmtGoto != null)
+                return node.stmtGoto.Interpret(runtime);
             else if (node.stmtIf != null)
                 return node.stmtIf.Interpret(runtime);
+            else if (node.stmtIfElseIf != null)
+                return node.stmtIfElseIf.Interpret(runtime);
+            else if (node.stmtIfElse != null)
+                return node.stmtIfElse.Interpret(runtime);
+            else if (node.stmtIfEndIf != null)
+                return node.stmtIfEndIf.Interpret(runtime);
             else if (node.stmtComment != null)
                 return null; // Nothing to interpret
 
@@ -483,8 +502,6 @@ namespace uBasic
 
         public static object? Interpret(this Parser.AstFor node, Runtime runtime)
         {
-            const string FOR_PREFIX = "#FOR_";
-            const string NEXT_PREFIX = "#NEXT_";
 
             if (node.id == null || node.beginExp == null || node.endExp == null)
                 return null;
@@ -547,8 +564,6 @@ namespace uBasic
 
         public static object? Interpret(this Parser.AstForNext node, Runtime runtime)
         {
-            const string FOR_PREFIX = "#FOR_";
-            const string NEXT_PREFIX = "#NEXT_";
             string forLabel = node.label.Replace(NEXT_PREFIX, FOR_PREFIX);
             if (runtime.lineLabels.ContainsKey(forLabel))
             {
@@ -569,45 +584,104 @@ namespace uBasic
                 return null;
 
             object? result = node.exp.Interpret(runtime);
-            if (CheckBool(result))
+            if (!CheckBool(result))
             {
-                if (node.lines == null || node.lines.lines == null)
-                    return null;
-
-                foreach (AstLine line in node.lines.lines)
+                // find else if
+                string nextLabel = node.label.Replace(IF_PREFIX, IF_ELSE_IF_PREFIX) + "_1";
+                if (!runtime.lineLabels.ContainsKey(nextLabel))
                 {
-                    result = line.Interpret(runtime);
-                }
-                return result;
-            }
-            // Now check elseif
-            if (node.elseIfClauses != null && node.elseIfClauses.Count > 0)
-            {
-                foreach(Parser.AstConditionAndLines condLines in node.elseIfClauses)
-                {
-                    if (condLines.exp == null || condLines.lines == null)
-                        continue;
-                    result = condLines.exp.Interpret(runtime);
-                    if (CheckBool(result) && condLines.lines != null && condLines.lines.lines != null)
+                    // find else
+                    nextLabel = node.label.Replace(IF_PREFIX, IF_ELSE_PREFIX);
+                    if (!runtime.lineLabels.ContainsKey(nextLabel))
                     {
-                        foreach (AstLine line in condLines.lines.lines)
+                        // find endif
+                        nextLabel = node.label.Replace(IF_PREFIX, IF_END_IF_PREFIX);
+                        if (!runtime.lineLabels.ContainsKey(nextLabel))
                         {
-                            result = line.Interpret(runtime);
+                            // find one line if 
+                            nextLabel = node.label.Replace(IF_PREFIX, IF_END_IF_SINGLE_PREFIX);
+                            if (!runtime.lineLabels.ContainsKey(nextLabel))
+                                return null;
                         }
-                        return result;
                     }
                 }
+                // label should be ok now.
+                runtime.instructionPointer = runtime.lineLabels[nextLabel] + 1;
             }
+            return result;
+        }
+        public static object? Interpret(this Parser.AstIfElseIf node, Runtime runtime)
+        {
+            if (node.exp == null)
+                return null;
 
-            if (node.elseLines != null && node.elseLines.lines != null)
+            object? result = node.exp.Interpret(runtime);
+            if (CheckBool(result))
             {
-                foreach (AstLine line in node.elseLines.lines)
+                // find next else if
+                int lastUnderscore = node.label.LastIndexOf('_');
+                if (lastUnderscore == -1)
+                    return null;
+                string prefix = node.label.Substring(0, lastUnderscore + 1);
+
+                if (!int.TryParse(node.label.Substring(lastUnderscore + 1), out int counter))
+                    return null;
+
+                string nextLabel = $"{prefix}_{counter + 1}";
+                if (!runtime.lineLabels.ContainsKey(nextLabel))
                 {
-                    result = line.Interpret(runtime);
+                    // find else
+                    nextLabel = prefix.Replace(IF_PREFIX, IF_ELSE_PREFIX);
+                    if (!runtime.lineLabels.ContainsKey(nextLabel))
+                    {
+                        // find endif
+                        nextLabel = prefix.Replace(IF_PREFIX, IF_END_IF_PREFIX);
+                        if (!runtime.lineLabels.ContainsKey(nextLabel))
+                        {
+                            return null; // Error
+                        }
+                    }
                 }
-                return result;
-            }    
-            return null;
+                // label should be ok now.
+                runtime.instructionPointer = runtime.lineLabels[nextLabel] + 1;
+            }
+                        
+            return result;
+        }
+
+        public static object? Interpret(this Parser.AstIfElse node, Runtime runtime)
+        {
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstIfEndIf node, Runtime runtime)
+        {
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstGoto node, Runtime runtime)
+        {
+            if (node.line != -1)
+            {
+                if (runtime.lineNumbers.ContainsKey(node.line))
+                    runtime.instructionPointer = runtime.lineNumbers[node.line];
+                else
+                {
+                    runtime.instructionPointer = runtime.program.Count + 1;
+                    return null;
+                }
+            }
+            else if (node.label != "")
+            {
+                if (runtime.lineLabels.ContainsKey(node.label))
+                    runtime.instructionPointer = runtime.lineLabels[node.label];
+                else
+                {
+                    runtime.instructionPointer = runtime.program.Count + 1;
+                    return null;
+                }
+            }
+            return OK;
         }
     }
 }
