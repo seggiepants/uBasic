@@ -11,6 +11,16 @@ namespace uBasic
 {
     public class Basic()
     {
+        const string FOR_PREFIX = "#FOR_";
+        const string NEXT_PREFIX = "#NEXT_";
+
+        const string IF_PREFIX = "#IF_";
+        const string IF_ELSE_IF_PREFIX = "#ELIF_";
+        const string IF_ELSE_PREFIX = "#ELSE_";
+        const string IF_END_IF_PREFIX = "#ENDIF_";
+
+        static Stack<string> labels = new Stack<string>();
+
         /*
         AstNode ParseLet(IEnumerable<Token> tokens, int Index)
         {
@@ -604,15 +614,62 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(forNextStatement.Item1, statement);
             }
 
+            Tuple<int, Parser.AstGoto?> gotoStatement = ParseGotoStatement(tokens, Index, runtime);
+            if (gotoStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(gotoStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(gotoStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstIf?> ifStatement = ParseIfStatment(tokens, Index, runtime);
             if (ifStatement.Item2 != null)
             {
                 statement = new Parser.AstStatement(tokens[Index]);
                 statement.Set(ifStatement.Item2);
-                // ZZZ fixme
+                int lineNum = runtime.program.Count;
+                runtime.lineLabels.Add(ifStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(ifStatement.Item1, statement);
             }
-            
+
+            Tuple<int, Parser.AstIfElseIf?> ifElseIfStatement = ParseIfElseIfStatment(tokens, Index, runtime);
+            if (ifElseIfStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(ifElseIfStatement.Item2);
+                int lineNum = runtime.program.Count;
+                runtime.lineLabels.Add(ifElseIfStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(ifElseIfStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstIfElse?> ifElseStatement = ParseIfElseStatment(tokens, Index, runtime);
+            if (ifElseStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(ifElseStatement.Item2);
+                int lineNum = runtime.program.Count;
+                runtime.lineLabels.Add(ifElseStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(ifElseStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstIfEndIf?> ifEndIfStatement = ParseIfEndIfStatment(tokens, Index, runtime);
+            if (ifEndIfStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(ifEndIfStatement.Item2);
+                int lineNum = runtime.program.Count;
+                // May have added for single line mode if so remove it.
+                if (runtime.lineLabels.ContainsKey(ifEndIfStatement.Item2.label))
+                    runtime.lineLabels.Remove(ifEndIfStatement.Item2.label);
+                runtime.lineLabels.Add(ifEndIfStatement.Item2.label, lineNum);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(ifEndIfStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index, runtime);
             if (let.Item2 != null)
             {
@@ -629,8 +686,7 @@ namespace uBasic
         {
             // FOR ID '=' <Expression> TO <Expression>     
             // | FOR ID '=' < Expression > TO < Expression > STEP Integer
-            const string FOR_PREFIX = "#FOR_";
-
+            
             Parser.AstFor ret = new(tokens[Index]);
             Tuple<int, Parser.AstFor?> failure = new Tuple<int, Parser.AstFor?>(Index, null);
             int i = Index;
@@ -701,8 +757,6 @@ namespace uBasic
 
         public static Tuple<int, Parser.AstForNext?> ParseForNextStatement(List<Token> tokens, int Index, Runtime runtime)
         {
-            const string FOR_PREFIX = "#FOR_";
-            const string NEXT_PREFIX = "#NEXT_";
             // NEXT <identifier>?
             int i = Index;
             Parser.AstForNext ret = new(tokens[i]);
@@ -736,10 +790,9 @@ namespace uBasic
 
 
         public static Tuple<int, Parser.AstIf?> ParseIfStatment(List<Token> tokens, int Index, Runtime runtime)
-        {
+        {            
             // IF <Expression> THEN <Statement> 
             int i = Index;
-            Parser.AstExpression? cond = null;
             Parser.AstIf ret = new(tokens[Index]);
 
             Tuple<int, Parser.AstIf?>failure = new Tuple<int, Parser.AstIf?>(Index, null);
@@ -755,7 +808,7 @@ namespace uBasic
             {
                 return failure;
             }
-            cond = resultCond.Item2;
+            ret.exp = resultCond.Item2;
             i = resultCond.Item1;
 
             if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
@@ -765,70 +818,126 @@ namespace uBasic
             // Consume then
             i++;
 
-            Tuple<int, Parser.AstLines?> resultLines = ParseLines(tokens, i, runtime);
-            if (resultLines.Item2 == null)
+            int idIf = runtime.NextCounter();
+            string labelIf = $"{IF_PREFIX}_{idIf}";
+            ret.label = labelIf;
+            runtime.ifStack.Push(idIf);
+            labels.Push($"{IF_END_IF_PREFIX}_{idIf}");
+
+            return new Tuple<int, Parser.AstIf?>(i, ret);
+        }
+
+        private static void GotoEndif(Token t, int idIf, Runtime runtime)
+        {
+            // Before running if we need the if (true) to jump to endif or single line if end.
+            string gotoEndIfLabel = $"{IF_END_IF_PREFIX}_{idIf}";
+            //if (!runtime.lineLabels.ContainsKey(gotoEndIfLabel))
+            //{
+                /*
+                gotoEndIfLabel = $"{IF_END_IF_SINGLE_PREFIX}_{idIf}";
+                if (!runtime.lineLabels.ContainsKey(gotoEndIfLabel))
+                {
+                    gotoEndIfLabel = "";
+                }
+                */
+            //    gotoEndIfLabel = "";
+            //}
+            
+            if (gotoEndIfLabel != "")
+            {
+                Parser.AstGoto expGoto = new(t);
+                expGoto.Set(gotoEndIfLabel);
+                Parser.AstStatement stmtGoto = new(t);
+                stmtGoto.Set(expGoto);
+                runtime.program.Add(stmtGoto);
+            }
+        }
+
+        public static Tuple<int, Parser.AstIfElseIf?> ParseIfElseIfStatment(List<Token> tokens, int Index, Runtime runtime)
+        {
+            // ELSEIF <Expression> THEN 
+            int i = Index;
+            Parser.AstIfElseIf ret = new(tokens[Index]);
+
+            Tuple<int, Parser.AstIfElseIf?> failure = new Tuple<int, Parser.AstIfElseIf?>(Index, null);
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_ELSEIF)
             {
                 return failure;
             }
-            ret.Set(cond, resultLines.Item2);
-            i = resultLines.Item1;
+            // Consume ELSEIF
+            i++;
 
-            while (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ELSEIF)
+            Tuple<int, Parser.AstExpression?> resultCond = ParseExpression(tokens, i, runtime);
+            if (resultCond.Item2 == null)
             {
-                Token savedToken = tokens[i];
-                i++; // eat the elseif
-                Tuple<int, Parser.AstExpression?> resultExp = ParseExpression(tokens, i, runtime);
-                if (resultExp.Item2 == null)
-                    return failure;
+                return failure;
+            }
+            ret.exp = resultCond.Item2;
+            i = resultCond.Item1;
 
-                i = resultExp.Item1;
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
+            {
+                return failure;
+            }
+            // Consume then
+            i++;
 
-                if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_THEN)
-                    return failure;
-                i++; // eat the then
-                Tuple<int, Parser.AstLines?> resultElseIfLines = ParseLines(tokens, i, runtime);
-                if (resultElseIfLines.Item2 == null)
-                    return failure;
-                i = resultElseIfLines.Item1;
-                Parser.AstConditionAndLines condElseIf = new(savedToken);
-                condElseIf.Set(resultExp.Item2, resultElseIfLines.Item2);
-                ret.AddElseIf(condElseIf);
+            if (runtime.ifStack.Count == 0)
+                return failure;
+
+            int elseCounter = 0;
+            bool foundCounter = false;
+            string elseIfLabel = "";
+            int idIf = runtime.ifStack.Peek();
+            while (!foundCounter)
+            {
+                elseCounter++;
+                elseIfLabel = $"{IF_ELSE_IF_PREFIX}_{idIf}_{elseCounter}";
+                if (!runtime.lineLabels.ContainsKey(elseIfLabel))
+                    foundCounter = true;
             }
 
-            if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_ELSE)
-            {
-                i++; // consume the ELSE
-                Tuple<int, Parser.AstLines?> resultElseLines = ParseLines(tokens, i, runtime);
-                if (resultElseLines.Item2 == null || resultElseLines.Item2.lines == null)
-                    return failure;
-                i = resultElseLines.Item1;
-                foreach(Parser.AstLine line in resultElseLines.Item2.lines)
-                {
-                    ret.AddElseLine(line);
-                }
-            }
+            ret.label = elseIfLabel;
 
-            // Must have end if when the body, else or elseif clauses have more than one line.
-            bool endIfRequired = false;
-            if (ret.lines != null && ret.lines.lines != null && ret.lines.lines.Count > 1)
-                endIfRequired = true;
-            else if (ret.elseLines != null && ret.elseLines.lines != null && ret.elseLines.lines.Count > 1)
-                endIfRequired = true;
-            else if (ret.elseIfClauses != null && ret.elseIfClauses.Count > 0)
+            GotoEndif(tokens[Index], idIf, runtime);
+
+            return new Tuple<int, Parser.AstIfElseIf?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstIfElse?> ParseIfElseStatment(List<Token> tokens, int Index, Runtime runtime)
+        {
+            // ELSE
+            int i = Index;
+            Parser.AstIfElse ret = new(tokens[Index]);
+
+            Tuple<int, Parser.AstIfElse?> failure = new Tuple<int, Parser.AstIfElse?>(Index, null);
+            if (tokens.Count < i || tokens[i].Type != Token_Type.TOKEN_ELSE)
             {
-                foreach (Parser.AstConditionAndLines condLines in ret.elseIfClauses)
-                {
-                    if (condLines.lines != null && condLines.lines.lines != null && condLines.lines.lines.Count > 1)
-                    {
-                        endIfRequired = true;
-                    }
-                }
+                return failure;
             }
+            // Consume ELSE
+            i++;
+
+            if (runtime.ifStack.Count == 0)
+                return failure; 
+            int idIf = runtime.ifStack.Peek();
+            ret.label = $"{IF_ELSE_PREFIX}_{idIf}";
+
+            GotoEndif(tokens[Index], idIf, runtime);
+
+            return new Tuple<int, Parser.AstIfElse?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstIfEndIf?> ParseIfEndIfStatment(List<Token> tokens, int Index, Runtime runtime)
+        {
+            // END IF
+            int i = Index;
+            Parser.AstIfEndIf? ret = new Parser.AstIfEndIf(tokens[i]);
+            Tuple<int, Parser.AstIfEndIf?> failure = new Tuple<int, Parser.AstIfEndIf?>(Index, null);
 
             if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_END))
             {
-                if (endIfRequired)
-                    return failure;
+                return failure;
             }
             else
             {
@@ -838,8 +947,7 @@ namespace uBasic
 
             if (tokens.Count <= i || (tokens.Count > i && tokens[i].Type != Token_Type.TOKEN_IF))
             {
-                if (endIfRequired)
-                    return failure;
+                return failure;
             }
             else
             {
@@ -847,7 +955,45 @@ namespace uBasic
                 i++;
             }
 
-            return new Tuple<int, Parser.AstIf?>(i, ret);
+            if (runtime.ifStack.Count == 0)
+                return failure;
+            int idIf = runtime.ifStack.Pop();
+            ret.label = $"{IF_END_IF_PREFIX}_{idIf}";
+
+            return new Tuple<int, Parser.AstIfEndIf?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstGoto?> ParseGotoStatement(List<Token> tokens, int Index, Runtime runtime)
+        {
+            //GOTO <Expression>
+            int i = Index;
+            Tuple<int, Parser.AstGoto?> failure = new Tuple<int, Parser.AstGoto?>(i, null);
+            if (tokens[i].Type != Token_Type.TOKEN_GOTO)
+            {
+                return failure;
+            }
+            Parser.AstGoto ret = new Parser.AstGoto(tokens[i]);
+            i++;
+
+            if (tokens[i].Type == Token_Type.TOKEN_STRING)
+            {
+                ret.Set(tokens[i].Text);
+                i++;
+            }
+            else if (tokens[i].Type == Token_Type.TOKEN_INTEGER)
+            {
+                if (int.TryParse(tokens[i].Text, out int lineNumber))
+                {
+                    ret.Set(lineNumber);
+                    i++;
+                }
+                else
+                    return failure;
+            }
+            else
+                return failure;
+
+            return new Tuple<int, Parser.AstGoto?>(i, ret);
         }
 
         public static Tuple<int, Parser.AstLet?> ParseLetStatement(List<Token> tokens, int Index, Runtime runtime)
@@ -950,7 +1096,7 @@ namespace uBasic
         }
 
         public static Tuple<int, Parser.AstLine?> ParseLine(List<Token> tokens, int Index, Runtime runtime)
-        {
+        {            
             /*
              <Line>  ::= Integer? <Statements>
                             | <Statement
@@ -978,7 +1124,15 @@ namespace uBasic
                 line.Set(stmts.Item2);
                 return new Tuple<int, Parser.AstLine?>(stmts.Item1, line);
             }
-            
+
+            while (labels.Count > 0)
+            {
+                if (runtime.lineLabels.ContainsKey(labels.Peek()))
+                    labels.Pop();
+                else
+                    runtime.lineLabels.Add(labels.Pop(), runtime.program.Count);
+            }
+
             return new Tuple<int, Parser.AstLine?>(Index, null);
         }
 

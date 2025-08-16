@@ -809,14 +809,22 @@ namespace uBasic
             public AstComment? stmtComment;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
+            public AstGoto? stmtGoto;
             public AstIf? stmtIf;
+            public AstIfElseIf? stmtIfElseIf;
+            public AstIfElse? stmtIfElse;
+            public AstIfEndIf? stmtIfEndIf;
             public AstLet? stmtLet;
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGoto = null;
                 stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
                 stmtLet = null;
             }
 
@@ -825,7 +833,11 @@ namespace uBasic
                 stmtComment = stmt;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGoto = null;
                 stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
                 stmtLet = null;
             }
 
@@ -834,7 +846,11 @@ namespace uBasic
                 stmtComment = null;
                 stmtFor = stmt;
                 stmtForNext = null;
+                stmtGoto = null;
                 stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
                 stmtLet = null;
             }
 
@@ -843,7 +859,24 @@ namespace uBasic
                 stmtComment = null;
                 stmtFor = null;
                 stmtForNext = stmt;
+                stmtGoto = null;
                 stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstGoto? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = stmt;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
                 stmtLet = null;
             }
 
@@ -852,7 +885,50 @@ namespace uBasic
                 stmtComment = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGoto = null;
                 stmtIf = stmt;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstIfElseIf? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = stmt;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstIfElse? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = stmt;
+                stmtIfEndIf = null;
+                stmtLet = null;
+            }
+
+            public void Set(AstIfEndIf? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = stmt;
                 stmtLet = null;
             }
 
@@ -861,7 +937,11 @@ namespace uBasic
                 stmtComment = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGoto = null;
                 stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
                 stmtLet = stmt;
             }
 
@@ -876,8 +956,20 @@ namespace uBasic
                 if (stmtForNext != null)
                     return stmtForNext;
 
+                if (stmtGoto != null)
+                    return stmtGoto;
+
                 if (stmtIf != null)
                     return stmtIf;
+
+                if (stmtIfElseIf != null)
+                    return stmtIfElseIf;
+
+                if (stmtIfElse != null)
+                    return stmtIfElse;
+
+                if (stmtIfEndIf != null)
+                    return stmtIfEndIf;
 
                 if (stmtLet != null)
                     return stmtLet;
@@ -892,8 +984,16 @@ namespace uBasic
                     return $"{stmtFor}";
                 else if (stmtForNext != null)
                     return $"{stmtForNext}";
+                else if (stmtGoto != null)
+                    return $"{stmtGoto}";
                 else if (stmtIf != null)
                     return $"{stmtIf}";
+                else if (stmtIfElseIf != null)
+                    return $"{stmtIfElseIf}";
+                else if (stmtIfElse != null)
+                    return $"{stmtIfElse}";
+                else if (stmtIfEndIf != null)
+                    return $"{stmtIfEndIf}";
                 else if (stmtLet != null)
                     return $"{stmtLet}";
                 return "";
@@ -1096,17 +1196,37 @@ namespace uBasic
         public class AstIf : AstNode
         {
             public AstExpression? exp;
-            public AstLines? lines;
-            public List<AstConditionAndLines>? elseIfClauses;
-            public AstLines? elseLines;
+            public string label = "";
             Token savedToken;
             public AstIf(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 savedToken = t;
                 exp = null;
-                lines = null;
-                elseIfClauses = null;
-                elseLines = null;
+            }
+
+            public void Set(AstExpression exp)
+            {
+                this.exp = exp;
+            }
+
+            public override string ToString()
+            {
+                if (exp != null)
+                    return $"IF {exp} THEN";
+                else
+                    return "ERROR: IF expression THEN";
+            }
+
+        }
+
+        public class AstIfElseIf : AstNode
+        {
+            public AstExpression? exp;
+            public string label = "";
+
+            public AstIfElseIf(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                exp = null;
             }
 
             public void Set(AstExpression exp)
@@ -1115,76 +1235,40 @@ namespace uBasic
                 // Add the lines of the body separately.
             }
 
-            public void AddThenLine(AstLine line)
+            public override string ToString()
             {
-                if (lines == null)
-                    lines = new AstLines(savedToken);
-                lines.Add(line);
+                return $"ELSEIF {exp} THEN";
             }
 
-            public void Set(AstExpression exp, AstLines body)
-            {
-                // If then endif
-                this.exp = exp;
-                this.lines = body;
-            }
+        }
 
-            public void AddElseIf(AstConditionAndLines elseifClause)
-            {
-                if (elseIfClauses == null)
-                    elseIfClauses = new List<AstConditionAndLines>();
-                elseIfClauses.Add(elseifClause);
-            }
+        public class AstIfElse : AstNode
+        {
+            public string label = "";
 
-            public void AddElse(AstLines? lines)
+            public AstIfElse(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
-                elseLines = lines;
-            }
-
-            public void AddElseLine(AstLine line)
-            {
-                if (elseLines == null)
-                    elseLines = new AstLines(savedToken);
-                elseLines.Add(line);
             }
 
             public override string ToString()
             {
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine($"IF {exp} THEN");
-                if (lines != null && lines.lines != null)
-                {
-                    foreach(AstLine line in lines.lines)
-                    {
-                        sb.AppendLine($"{line}");
-                    }
-                }
-                if (elseIfClauses != null)
-                {
-                    foreach (AstConditionAndLines cond in elseIfClauses)
-                    {
-                        sb.AppendLine($"ELSEIF {cond.exp} THEN ");
-                        if (cond.lines != null && cond.lines.lines != null)
-                        {
-                            foreach (AstLine line in cond.lines.lines)
-                            {
-                                sb.AppendLine($"{line}");
-                            }
-                        }
-                    }
-                }
-                if (elseLines != null && elseLines.lines != null)
-                {
-                    sb.AppendLine($"ELSE");
-                    foreach (AstLine line in elseLines.lines)
-                    {
-                        sb.AppendLine($"{line}");
-                    }
-                }
-                sb.AppendLine("END IF");
-                return sb.ToString();
+                return "ELSE";
             }
 
+        }
+        
+        public class AstIfEndIf : AstNode
+        {
+            public string label = "";
+
+            public AstIfEndIf(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+            }
+
+            public override string ToString()
+            {
+                return "END IF";
+            }
         }
 
         public class AstFor : AstNode
@@ -1251,6 +1335,40 @@ namespace uBasic
             public override string ToString()
             {
                 return this.id != null ? $"NEXT {id}" : "NEXT";
+            }
+
+        }
+
+        public class AstGoto : AstNode
+        {
+            /*
+                GOTO <LINE NUMBER|LABEL>
+            */
+            public string label = "";
+            public int line = -1;
+            public AstGoto(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+            }
+
+            public void Set(string label)
+            {
+                this.label = label;
+                this.line = -1;
+            }
+            public void Set(int line)
+            {
+                this.label = "";
+                this.line = line;
+            }
+
+            public override string ToString()
+            {
+                string target = "ERROR";
+                if (this.label != "")
+                    target = label;
+                else if (this.line != -1)
+                    target = this.line.ToString();
+                return $"GOTO {target}";
             }
 
         }

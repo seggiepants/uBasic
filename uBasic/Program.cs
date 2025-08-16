@@ -1,4 +1,6 @@
-﻿namespace uBasic
+﻿using System.ComponentModel.Design;
+
+namespace uBasic
 {
     public class uBasic
     {
@@ -12,6 +14,7 @@
             Runtime program = new Runtime();
             Runtime repl = new Runtime();
             repl.symbolTable = program.symbolTable;
+            Basic basic = new Basic();
 
             while (!EOF)
             {
@@ -29,17 +32,29 @@
                             //Console.WriteLine($"Type: {t.Type}, Value: \"{t.Text}\" :: line: {t.LineNumber} column: {t.ColumnNumber}");
                             tokens.Add(t);
                         }
-                        Basic basic = new Basic();
-                        for (int i = 0; i < tokens.Count; i++)
+                        if (tokens.Count > 0)
                         {
-                            if (tokens[i].Type == Token_Type.TOKEN_INTEGER || tokens[i].Type == Token_Type.TOKEN_LIST || tokens[i].Type == Token_Type.TOKEN_RUN)
+                            if (tokens[0].Type == Token_Type.TOKEN_INTEGER ||
+                            tokens[0].Type == Token_Type.TOKEN_LIST ||
+                            tokens[0].Type == Token_Type.TOKEN_RUN)
+                            {
                                 runtime = program;
+                            }
                             else
                             {
                                 runtime = repl;
                                 repl.program.Clear();
                                 repl.stack.Clear();
                             }
+                        }
+                        else
+                        {
+                            runtime = repl;
+                            repl.program.Clear();
+                            repl.stack.Clear();
+                        }
+                        for (int i = 0; i < tokens.Count; i++)
+                        {
 
                             int lineNum = runtime.program.Count;
                             Tuple<int, Parser.AstLine?> line = Basic.ParseLine(tokens, i, runtime);

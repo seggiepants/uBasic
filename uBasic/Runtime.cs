@@ -18,6 +18,7 @@ namespace uBasic
         public bool running;
         private int counter;
         public Stack<int> forStack;
+        public Stack<int> ifStack;
 
         public Runtime()
         {
@@ -31,6 +32,7 @@ namespace uBasic
             running = false;
             counter = 1;
             forStack = new Stack<int>();
+            ifStack = new Stack<int>();
         }
 
         public void Clear()
@@ -44,7 +46,8 @@ namespace uBasic
             instructionPointer = 0;
             running = false;
             counter = 1;
-            forStack = new Stack<int>();
+            forStack.Clear();
+            ifStack.Clear();
         }
 
         public int NextCounter()
