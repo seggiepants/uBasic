@@ -15,10 +15,8 @@ namespace uBasic
         const string NEXT_PREFIX = "#NEXT_";
 
         const string IF_PREFIX = "#IF_";
-        const string IF_ELSE_IF_PREFIX = "#ELIF_";
-        const string IF_ELSE_PREFIX = "#ELSE_";
+        const string IF_NEXT_PREFIX = "#IF_NEXT_";
         const string IF_END_IF_PREFIX = "#ENDIF_";
-        const string IF_END_IF_SINGLE_PREFIX = "#ENDIF_SINGLE_";
 
         public static object? Interpret(this Parser.AstNode node, Runtime runtime) { return null; }
 
@@ -32,10 +30,11 @@ namespace uBasic
                     AstStatement stmt = runtime.program[i];
                     if (runtime.lineLabels.ContainsValue(i))
                     {
-                        string label = (from pair in runtime.lineLabels
+                        string[] labels = (from pair in runtime.lineLabels
                                  where pair.Value == i
-                                 select pair.Key).First();
-                        sb.AppendLine(label + ":");
+                                 select pair.Key).ToArray<string>();
+                        foreach(string label in labels)
+                            sb.AppendLine(label + ":");
                     }
                     string lineNum = "";
                     if (runtime.lineNumbers.ContainsValue(i))
@@ -50,7 +49,7 @@ namespace uBasic
             }
             else if (node.Type == Token_Type.TOKEN_RUN)
             {
-                return runtime.Run() ?? "OK";
+                return runtime.Run() ?? OK;
             }
             return null;
         }
@@ -420,6 +419,8 @@ namespace uBasic
                 return node.stmtIfElse.Interpret(runtime);
             else if (node.stmtIfEndIf != null)
                 return node.stmtIfEndIf.Interpret(runtime);
+            else if (node.stmtPrint != null)
+                return node.stmtPrint.Interpret(runtime);
             else if (node.stmtComment != null)
                 return null; // Nothing to interpret
 
@@ -587,26 +588,18 @@ namespace uBasic
             if (!CheckBool(result))
             {
                 // find else if
-                string nextLabel = node.label.Replace(IF_PREFIX, IF_ELSE_IF_PREFIX) + "_1";
+                string nextLabel = node.label.Replace(IF_PREFIX, IF_NEXT_PREFIX) + "_1";
                 if (!runtime.lineLabels.ContainsKey(nextLabel))
                 {
-                    // find else
-                    nextLabel = node.label.Replace(IF_PREFIX, IF_ELSE_PREFIX);
+                    // find endif
+                    nextLabel = node.label.Replace(IF_PREFIX, IF_END_IF_PREFIX);
                     if (!runtime.lineLabels.ContainsKey(nextLabel))
                     {
-                        // find endif
-                        nextLabel = node.label.Replace(IF_PREFIX, IF_END_IF_PREFIX);
-                        if (!runtime.lineLabels.ContainsKey(nextLabel))
-                        {
-                            // find one line if 
-                            nextLabel = node.label.Replace(IF_PREFIX, IF_END_IF_SINGLE_PREFIX);
-                            if (!runtime.lineLabels.ContainsKey(nextLabel))
-                                return null;
-                        }
+                        return null;
                     }
                 }
                 // label should be ok now.
-                runtime.instructionPointer = runtime.lineLabels[nextLabel] + 1;
+                runtime.instructionPointer = runtime.lineLabels[nextLabel];
             }
             return result;
         }
@@ -616,13 +609,13 @@ namespace uBasic
                 return null;
 
             object? result = node.exp.Interpret(runtime);
-            if (CheckBool(result))
+            if (!CheckBool(result))
             {
                 // find next else if
                 int lastUnderscore = node.label.LastIndexOf('_');
                 if (lastUnderscore == -1)
                     return null;
-                string prefix = node.label.Substring(0, lastUnderscore + 1);
+                string prefix = node.label.Substring(0, lastUnderscore);
 
                 if (!int.TryParse(node.label.Substring(lastUnderscore + 1), out int counter))
                     return null;
@@ -630,20 +623,15 @@ namespace uBasic
                 string nextLabel = $"{prefix}_{counter + 1}";
                 if (!runtime.lineLabels.ContainsKey(nextLabel))
                 {
-                    // find else
-                    nextLabel = prefix.Replace(IF_PREFIX, IF_ELSE_PREFIX);
+                    // find endif
+                    nextLabel = prefix.Replace(IF_NEXT_PREFIX, IF_END_IF_PREFIX);
                     if (!runtime.lineLabels.ContainsKey(nextLabel))
                     {
-                        // find endif
-                        nextLabel = prefix.Replace(IF_PREFIX, IF_END_IF_PREFIX);
-                        if (!runtime.lineLabels.ContainsKey(nextLabel))
-                        {
-                            return null; // Error
-                        }
+                        return null; // Error
                     }
                 }
                 // label should be ok now.
-                runtime.instructionPointer = runtime.lineLabels[nextLabel] + 1;
+                runtime.instructionPointer = runtime.lineLabels[nextLabel];
             }
                         
             return result;
@@ -682,6 +670,40 @@ namespace uBasic
                 }
             }
             return OK;
+        }
+
+        public static object? Interpret(this Parser.AstPrint node, Runtime runtime)
+        {
+            if (node.exps == null || node.exps.exps == null || node.exps.exps.Count == 0)
+            {
+                if (node.emitCrlf)
+                    Console.WriteLine("");
+                else
+                    Console.Write("");
+            } 
+            else
+            {
+                if (node.emitCrlf)
+                    Console.WriteLine(node.exps.Interpret(runtime));
+                else
+                    Console.Write(node.exps.Interpret(runtime));
+            }
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstPrintList node, Runtime runtime)
+        {
+            if (node.exps == null || node.exps.Count == 0)
+                return "";
+            else
+            {
+                StringBuilder sb = new();
+                foreach(Parser.AstExpression exp in node.exps)
+                {
+                    sb.Append(exp.Interpret(runtime));
+                }
+                return sb.ToString();
+            }
         }
     }
 }

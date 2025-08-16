@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.Design;
+using System.Reflection.Emit;
 
 namespace uBasic
 {
@@ -35,8 +36,9 @@ namespace uBasic
                         if (tokens.Count > 0)
                         {
                             if (tokens[0].Type == Token_Type.TOKEN_INTEGER ||
-                            tokens[0].Type == Token_Type.TOKEN_LIST ||
-                            tokens[0].Type == Token_Type.TOKEN_RUN)
+                                tokens[0].Type == Token_Type.TOKEN_LOAD ||
+                                tokens[0].Type == Token_Type.TOKEN_LIST ||
+                                tokens[0].Type == Token_Type.TOKEN_RUN)
                             {
                                 runtime = program;
                             }
@@ -58,15 +60,15 @@ namespace uBasic
 
                             int lineNum = runtime.program.Count;
                             Tuple<int, Parser.AstLine?> line = Basic.ParseLine(tokens, i, runtime);
-                            if (line.Item2 != null && line.Item2 != null)
+                            if (line.Item2 != null)
                             {
                                 if (line.Item2.statements != null && line.Item2.statements.statements != null)
                                 {
                                     if (line.Item2.line != null)
                                         runtime.lineNumbers.Add((int)line.Item2.line, lineNum);
-                                    else
+                                    //else
                                         //Console.WriteLine(line.Item2.Interpret(runtime));
-                                        Console.WriteLine(runtime.Run());
+                                        //Console.WriteLine(runtime.Run());
                                 }
                                 //else
                                     //Console.WriteLine(line.Item2.Interpret(runtime));
@@ -81,8 +83,12 @@ namespace uBasic
                                     Console.WriteLine(node.Item2.Interpret(runtime));
                                     i = node.Item1 - 1; // for loop adds the 1 back on.
                                 }
-                                else
+                                else if (tokens[i].Type == Token_Type.TOKEN_LOAD)
                                 {
+                                    i++; // Eat the string.
+                                }
+                                else
+                                { 
                                     Tuple<int, Parser.AstToken?> parsedToken = Basic.ParseToken(tokens, i, runtime);
                                     object? result = null;
                                     if (parsedToken.Item2 != null)
@@ -92,9 +98,23 @@ namespace uBasic
                                             Console.WriteLine(result);
                                     }
                                     if (parsedToken == null || result == null)
-                                        Console.WriteLine($"Unrecognized token/syntax error at Line: {tokens[i].LineNumber}, Column: {tokens[i].LineNumber} :: {tokens[i].Text}");
+                                        Console.WriteLine($"Unrecognized token/syntax error at Line: {tokens[i].LineNumber}, Column: {tokens[i].ColumnNumber} :: {tokens[i].Text}");
                                 }
                             }
+                        }
+
+                        while (Basic.labels.Count > 0)
+                        {
+                            if (runtime.lineLabels.ContainsKey(Basic.labels.Peek()))
+                                Basic.labels.Pop();
+                            else
+                                runtime.lineLabels.Add(Basic.labels.Pop(), runtime.program.Count);
+                        }
+
+
+                        if (tokens != null && tokens.Count > 0 && runtime.program.Count > 0 && runtime == repl)
+                        {
+                            runtime.Run();
                         }
                     }
                     catch (Exception ex)

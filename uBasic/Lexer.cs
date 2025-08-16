@@ -45,10 +45,13 @@ namespace uBasic
         TOKEN_LET,
         TOKEN_GOTO,
         TOKEN_LIST,
+        TOKEN_LOAD,
         TOKEN_RUN,
         TOKEN_STRING,
         TOKEN_COMMENT,
         TOKEN_COLON,
+        TOKEN_SEMICOLON,
+        TOKEN_PRINT,
         TOKEN_NEWLINE,
         TOKEN_WHITE_SPACE,
     }
@@ -68,6 +71,7 @@ namespace uBasic
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LET, new Regex(@"^let(?=( |\t|\r|\n))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_GOTO, new Regex(@"^goto(?=( |\t))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LIST, new Regex(@"^list(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LOAD, new Regex(@"^load(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_FOR, new Regex(@"^for(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_TO, new Regex(@"^to(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_NEXT, new Regex(@"^next(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
@@ -78,6 +82,7 @@ namespace uBasic
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_ELSE, new Regex(@"^else(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_END, new Regex(@"^end(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_RUN, new Regex(@"^run(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_PRINT, new Regex(@"^print(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^'(?'comment'[^(\n|\r)]*)", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^REM(?=( |\t|\r|\n))(?'comment'[^(\n|\r)]*)")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_FLOAT, new Regex(@"^[+|-]?(\d+)?\.\d+")),
@@ -104,6 +109,7 @@ namespace uBasic
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_LESS_THAN, new Regex(@"^<")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_GREATER_THAN, new Regex(@"^>")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COLON, new Regex(@"^:")),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_SEMICOLON, new Regex(@"^;")),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_STRING, new Regex(@"^""(?:[^""\\]|\\.)*""")),
         };
 

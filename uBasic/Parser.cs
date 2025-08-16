@@ -815,6 +815,8 @@ namespace uBasic
             public AstIfElse? stmtIfElse;
             public AstIfEndIf? stmtIfEndIf;
             public AstLet? stmtLet;
+            public AstPrint? stmtPrint;
+
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
@@ -826,6 +828,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstComment? stmt)
@@ -839,6 +842,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstFor? stmt)
@@ -852,6 +856,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstForNext? stmt)
@@ -865,6 +870,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstGoto? stmt)
@@ -878,6 +884,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstIf? stmt)
@@ -891,6 +898,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstIfElseIf? stmt)
@@ -904,6 +912,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstIfElse? stmt)
@@ -917,6 +926,7 @@ namespace uBasic
                 stmtIfElse = stmt;
                 stmtIfEndIf = null;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstIfEndIf? stmt)
@@ -930,6 +940,7 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = stmt;
                 stmtLet = null;
+                stmtPrint = null;
             }
 
             public void Set(AstLet? stmt)
@@ -943,6 +954,21 @@ namespace uBasic
                 stmtIfElse = null;
                 stmtIfEndIf = null;
                 stmtLet = stmt;
+                stmtPrint = null;
+            }
+
+            public void Set(AstPrint? stmt)
+            {
+                stmtComment = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtLet = null;
+                stmtPrint = stmt;
             }
 
             public AstNode? Get()
@@ -973,6 +999,10 @@ namespace uBasic
 
                 if (stmtLet != null)
                     return stmtLet;
+
+                if (stmtPrint != null)
+                    return stmtPrint;
+
                 return null;
             }
 
@@ -996,6 +1026,9 @@ namespace uBasic
                     return $"{stmtIfEndIf}";
                 else if (stmtLet != null)
                     return $"{stmtLet}";
+                else if (stmtPrint != null)
+                    return $"{stmtPrint}";
+
                 return "";
             }
         }
@@ -1197,6 +1230,7 @@ namespace uBasic
         {
             public AstExpression? exp;
             public string label = "";
+            public bool multiLine = true;
             Token savedToken;
             public AstIf(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
@@ -1371,6 +1405,63 @@ namespace uBasic
                 return $"GOTO {target}";
             }
 
+        }
+
+        public class AstPrintList : AstNode
+        {
+            public List<AstExpression>? exps;
+
+            public AstPrintList(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                exps = null;
+            }
+
+            public void Add(AstExpression e)
+            {
+                if (exps == null)
+                    exps = new List<AstExpression>();
+                exps.Add(e);
+            }
+
+            public override string ToString()
+            {
+                if (exps == null || exps.Count == 0)
+                    return "";
+                return String.Join(';', 
+                    (from exp in exps
+                    select $"{exp}").ToArray<string>());
+            }
+        }
+
+        public class AstPrint : AstNode
+        {
+            public AstPrintList? exps;
+            public bool emitCrlf = true;
+            Token saved;
+            public AstPrint(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                exps = null;
+                saved = t;
+            }
+
+            public void Set(AstPrintList printList)
+            {
+                exps = printList;
+            }
+
+            public void Add(AstExpression exp)
+            {
+                if (exps == null)
+                    exps = new AstPrintList(saved);
+                exps.Add(exp);
+            }
+
+            public override string ToString()
+            {
+                if (exps == null || exps.exps == null || exps.exps.Count == 0)
+                    return "PRINT";
+                return $"PRINT {exps}";
+            }
         }
     }
 }

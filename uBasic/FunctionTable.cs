@@ -51,8 +51,10 @@ namespace uBasic
         {
             fnTable.Clear();
             fnTable.Add("LEN", LEN);
-            fnTable.Add("MID$", MID);
+            fnTable.Add("STR", STR);
+            fnTable.Add("STR$", STR);
             fnTable.Add("MID", MID);
+            fnTable.Add("MID$", MID);
             fnTable.Add("LEFT", LEFT);
             fnTable.Add("LEFT$", LEFT);
             fnTable.Add("RIGHT", RIGHT);
@@ -63,6 +65,12 @@ namespace uBasic
             fnTable.Add("LCASE$", LCASE);
             fnTable.Add("SPACE", SPACE);
             fnTable.Add("SPACE$", SPACE);
+            fnTable.Add("LTRIM", LTRIM);
+            fnTable.Add("LTRIM$", LTRIM);
+            fnTable.Add("RTRIM", RTRIM);
+            fnTable.Add("RTRIM$", RTRIM);
+            fnTable.Add("TRIM", TRIM);
+            fnTable.Add("TRIM$", TRIM);
             fnTable.Add("SIN", SIN);
             fnTable.Add("COS", COS);
             fnTable.Add("TAN", TAN);
@@ -75,9 +83,6 @@ namespace uBasic
         // STRING/STRING$
         // REPLACE/REPLACE$
         // STRREVERSE/STRREVERSE$
-        // LTRIM/LTRIM$
-        // RTRIM/RTRIM$
-        // TRIM/TRIM$
         // ASC
         // CHR/CHR$
         // SQR -- Square Root
@@ -115,6 +120,67 @@ namespace uBasic
             {
                 throw new Exception("Parameter Error LEN requires a string or array to operate on.");
             }
+        }
+
+        public static object? STR(Stack<object?> stack)
+        {
+            bool success;
+            object? text;
+
+            success = stack.TryPop(out text);
+            if (text == null || !success)
+                throw new Exception("STR - Invalid operands.");
+
+            if (text.GetType() == typeof(string))
+                return text;
+            else
+                return text.ToString();
+        }
+
+        public static object? LTRIM(Stack<object?> stack)
+        {
+
+            bool success;
+            string? text;
+
+            text = GetOperand<string>(stack, out success);
+            if (text != null && success)
+                stack.Pop();
+            else
+                throw new Exception("LTRIM - Invalid operands.");
+
+            return text.TrimStart();
+
+        }
+
+        public static object? RTRIM(Stack<object?> stack)
+        {
+
+            bool success;
+            string? text;
+
+            text = GetOperand<string>(stack, out success);
+            if (text != null && success)
+                stack.Pop();
+            else
+                throw new Exception("RTRIM - Invalid operands.");
+
+            return text.TrimEnd();
+        }
+
+        public static object? TRIM(Stack<object?> stack)
+        {
+
+            bool success;
+            string? text;
+
+            text = GetOperand<string>(stack, out success);
+            if (text != null && success)
+                stack.Pop();
+            else
+                throw new Exception("TRIM - Invalid operands.");
+
+            return text.Trim();
         }
 
         public static object? MID(Stack<object?> stack)
