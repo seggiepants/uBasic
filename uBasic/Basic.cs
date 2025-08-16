@@ -1180,6 +1180,15 @@ namespace uBasic
                     }
                     
                 }
+                // Get any stragglers
+                while (Basic.labels.Count > 0)
+                {
+                    if (runtime.lineLabels.ContainsKey(Basic.labels.Peek()))
+                        Basic.labels.Pop();
+                    else
+                        runtime.lineLabels.Add(Basic.labels.Pop(), runtime.program.Count);
+                }
+
                 return ret;
             }
 
