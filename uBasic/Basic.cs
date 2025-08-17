@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 
@@ -591,6 +593,15 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
             }
 
+            Tuple<int, Parser.AstEnd?> endStatement = ParseEnd(tokens, Index, runtime);
+            if (endStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(endStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(endStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstFor?> forStatement = ParseForStatment(tokens, Index, runtime);
             if (forStatement.Item2 != null)
             {
@@ -667,6 +678,16 @@ namespace uBasic
                 runtime.lineLabels.Add(ifEndIfStatement.Item2.label, lineNum);
                 runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(ifEndIfStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstInput?> inputStatement = ParseInput(tokens, Index, runtime);
+            if (inputStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(inputStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(inputStatement.Item1, statement);
+
             }
 
             Tuple<int, Parser.AstLet?> let = ParseLetStatement(tokens, Index, runtime);
@@ -1204,6 +1225,24 @@ namespace uBasic
                     line.Set((int)lineNumber, statements.Item2);
                     return new Tuple<int, Parser.AstLine?>(statements.Item1, line);
                 }
+                else
+                {
+                    // Turn line number only lines into a blank comment statement line.
+                    Token tokenComment = new Token();
+                    tokenComment.Type = Token_Type.TOKEN_COMMENT;
+                    tokenComment.LineNumber = tokens[i].LineNumber;
+                    tokenComment.ColumnNumber = tokens[i].ColumnNumber;
+                    tokenComment.Text = "";
+                    Parser.AstComment commentNull = new Parser.AstComment(tokenComment);
+                    commentNull.comment.Text = "";
+                    Parser.AstStatement stmtNull = new Parser.AstStatement(tokenComment);
+                    stmtNull.Set(commentNull);
+                    Parser.AstStatements stmtsNull = new Parser.AstStatements(tokenComment);
+                    stmtsNull.Add(stmtNull);
+                    Parser.AstLine lineNull = new Parser.AstLine(tokenComment);
+                    lineNull.Set(stmtsNull);
+                    return new Tuple<int, Parser.AstLine?>(statements.Item1, lineNull);
+                }
             }
 
             i = Index;
@@ -1331,5 +1370,82 @@ namespace uBasic
             return new Tuple<int, Parser.AstPrintList?>(i, ret);
         }
 
+        public static Tuple<int, Parser.AstIDList?> ParseIDList(List<Token> tokens, int Index, Runtime runtime)
+        {
+            /*
+             <ID List>  ::= ID ',' <ID List> 
+             | ID
+             */
+            int i = Index;
+            Tuple<int, Parser.AstIDList?> failure = new Tuple<int, Parser.AstIDList?>(Index, null);
+            Parser.AstIDList ret = new(tokens[i]);
+
+            Tuple<int, Parser.AstValue?> variable = ParseValue(tokens, i, runtime);
+            while (variable.Item2 != null && variable.Item2.nodeVariable != null)
+            {
+                i = variable.Item1;
+                ret.Add(variable.Item2.nodeVariable);
+
+                if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_COMMA)
+                {
+                    variable = ParseValue(tokens, i + 1, runtime);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return new Tuple<int, Parser.AstIDList?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstInput?> ParseInput(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstInput?> failure = new(Index, null);
+            if (tokens[i].Type != Token_Type.TOKEN_INPUT)
+            {
+                return failure;
+            }
+            Parser.AstInput ret = new Parser.AstInput(tokens[i]);
+            i++;
+
+            // do we have a prompt
+            string prompt = "";
+            if (tokens.Count > i + 2 && tokens[i].Type == Token_Type.TOKEN_STRING && tokens[i + 1].Type == Token_Type.TOKEN_SEMICOLON)
+            {
+                prompt = tokens[i].Text;
+                if (prompt.Length >= 2)
+                    prompt = prompt.Substring(1, prompt.Length - 2);
+
+                i += 2;
+            }
+
+            Tuple<int, Parser.AstIDList?> ids = ParseIDList(tokens, i, runtime);
+            if (ids.Item2 == null)
+                return failure;
+            i = ids.Item1;
+            ret.Set(prompt, ids.Item2);
+            return new Tuple<int ,  Parser.AstInput?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstEnd?> ParseEnd(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstEnd?> failure = new(Index, null);
+            if (tokens[i].Type != Token_Type.TOKEN_END)
+            {
+                return failure;
+            }
+
+            Parser.AstEnd ret = new Parser.AstEnd(tokens[i]);
+            i++;
+
+            if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_IF)
+            {
+                return failure;
+            }
+
+            return new Tuple<int, Parser.AstEnd?>(i, ret);
+        }
     }
 }

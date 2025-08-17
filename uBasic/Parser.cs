@@ -807,6 +807,7 @@ namespace uBasic
         public class AstStatement : AstNode
         {
             public AstComment? stmtComment;
+            public AstEnd? stmtEnd;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
             public AstGoto? stmtGoto;
@@ -814,12 +815,14 @@ namespace uBasic
             public AstIfElseIf? stmtIfElseIf;
             public AstIfElse? stmtIfElse;
             public AstIfEndIf? stmtIfEndIf;
+            public AstInput? stmtInput;
             public AstLet? stmtLet;
             public AstPrint? stmtPrint;
 
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -827,6 +830,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -834,6 +838,7 @@ namespace uBasic
             public void Set(AstComment? stmt)
             {
                 stmtComment = stmt;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -841,6 +846,23 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+            }
+
+            public void Set(AstEnd? stmt)
+            {
+                stmtComment = null;
+                stmtEnd = stmt;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -848,6 +870,7 @@ namespace uBasic
             public void Set(AstFor? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = stmt;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -855,6 +878,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -862,6 +886,7 @@ namespace uBasic
             public void Set(AstForNext? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = stmt;
                 stmtGoto = null;
@@ -869,6 +894,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -876,6 +902,7 @@ namespace uBasic
             public void Set(AstGoto? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = stmt;
@@ -883,6 +910,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -890,6 +918,7 @@ namespace uBasic
             public void Set(AstIf? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -897,6 +926,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -904,6 +934,7 @@ namespace uBasic
             public void Set(AstIfElseIf? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -911,6 +942,7 @@ namespace uBasic
                 stmtIfElseIf = stmt;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -918,6 +950,7 @@ namespace uBasic
             public void Set(AstIfElse? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -925,6 +958,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = stmt;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -932,6 +966,7 @@ namespace uBasic
             public void Set(AstIfEndIf? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -939,6 +974,23 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = stmt;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+            }
+
+            public void Set(AstInput? stmt)
+            {
+                stmtComment = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = stmt;
                 stmtLet = null;
                 stmtPrint = null;
             }
@@ -946,6 +998,7 @@ namespace uBasic
             public void Set(AstLet? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -953,6 +1006,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = stmt;
                 stmtPrint = null;
             }
@@ -960,6 +1014,7 @@ namespace uBasic
             public void Set(AstPrint? stmt)
             {
                 stmtComment = null;
+                stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtGoto = null;
@@ -967,6 +1022,7 @@ namespace uBasic
                 stmtIfElseIf = null;
                 stmtIfElse = null;
                 stmtIfEndIf = null;
+                stmtInput = null;
                 stmtLet = null;
                 stmtPrint = stmt;
             }
@@ -975,6 +1031,9 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return stmtComment;
+
+                if (stmtEnd != null)
+                    return stmtEnd;
 
                 if (stmtFor != null)
                     return stmtFor;
@@ -997,6 +1056,9 @@ namespace uBasic
                 if (stmtIfEndIf != null)
                     return stmtIfEndIf;
 
+                if (stmtInput != null)
+                    return stmtInput;
+
                 if (stmtLet != null)
                     return stmtLet;
 
@@ -1010,6 +1072,8 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return $"{stmtComment}";
+                else if (stmtEnd != null)
+                    return $"{stmtEnd}";
                 else if (stmtFor != null)
                     return $"{stmtFor}";
                 else if (stmtForNext != null)
@@ -1024,6 +1088,8 @@ namespace uBasic
                     return $"{stmtIfElse}";
                 else if (stmtIfEndIf != null)
                     return $"{stmtIfEndIf}";
+                else if (stmtInput != null)
+                    return $"{stmtInput}";
                 else if (stmtLet != null)
                     return $"{stmtLet}";
                 else if (stmtPrint != null)
@@ -1463,5 +1529,91 @@ namespace uBasic
                 return $"PRINT {exps}";
             }
         }
+
+        public class AstIDList : AstNode
+        {
+            public List<AstVariable>? ids;
+            public AstIDList(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                ids = null;
+            }
+
+            public void Set(List<AstVariable>? ids)
+            {
+                this.ids = ids;
+            }
+
+            public void Add(AstVariable id)
+            {
+                if (ids == null)
+                    ids = new List<AstVariable>();
+                ids.Add(id);
+            }
+
+            public override string ToString()
+            {
+                if (ids == null || ids.Count == 0)
+                    return "";
+
+                return String.Join(", ", (from id in ids
+                                          select id.ToString()));
+            }
+        }
+
+        public class AstInput : AstNode
+        {
+            public AstIDList? ids;
+            public string prompt = "";
+            Token saved;
+            public AstInput(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                ids = null;
+                prompt = "";
+                saved = t;
+            }
+
+            public void Set(string prompt)
+            {
+                this.ids = null;
+                this.prompt = "";
+            }
+
+            public void Set(string prompt, AstIDList? ids)
+            {
+                this.prompt = prompt;
+                this.ids = ids;
+            }
+
+            public void Set(AstIDList? ids)
+            {
+                this.prompt = "";
+                this.ids = ids;
+            }
+
+            public void Add(AstVariable id)
+            {
+                if (ids == null)
+                    ids = new AstIDList(saved);
+                ids.Add(id);                
+            }
+            public override string ToString()
+            {
+                string promptText = prompt.Length > 0 ? $" \"{prompt}\"," : "";
+                string idList = ids != null && ids.ids != null && ids.ids.Count > 0 ? $" {ids}" : "";
+                return $"INPUT{promptText}{idList}";
+            }
+        }
+
+        public class AstEnd : AstNode
+        {
+            public AstEnd(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+            }
+            public override string ToString()
+            {
+                return "END";
+            }
+        }
+
     }
 }

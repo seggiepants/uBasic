@@ -18,10 +18,12 @@ namespace uBasic
     public class FunctionTable
     {
         static Dictionary<string, Func<Stack<object?>, object?>> fnTable = new();
+        static Random r;
 
         public FunctionTable()
         {
             Clear();
+            r = new Random();
         }
 
         public object? Call(string name, Parser.AstExpressionList? args, Runtime runtime)
@@ -75,6 +77,8 @@ namespace uBasic
             fnTable.Add("COS", COS);
             fnTable.Add("TAN", TAN);
             fnTable.Add("ABS", ABS);
+            fnTable.Add("RND", RND);
+            fnTable.Add("INT", INT);
         }
 
         // To be implemented:
@@ -86,10 +90,8 @@ namespace uBasic
         // ASC
         // CHR/CHR$
         // SQR -- Square Root
-        // INT -- Convert to Integer
         // FIX -- Convert to Integer dumping the decimal part.
         // ABS -- Absolute Value
-        // RND -- Random Number Generator.
         // ATN -- Arc Tangent
         // ATAN2 -- Arc Tangent -- Nicer
         // MOD -> This needs to be at root level with +-*/
@@ -456,6 +458,45 @@ namespace uBasic
                     throw new Exception("SPACE - Invalid operand.");
             }
         }
+
+        private static object? RND(Stack<object?> stack)
+        {
+            object? throwAway;
+
+            if (stack.Count > 0)
+            {
+                throwAway = stack.Pop();
+                if (throwAway != null && (throwAway.GetType() == typeof(int) || throwAway.GetType() == typeof(Int32) || throwAway.GetType() == typeof(Int64)))
+                {
+                    int value = (int)throwAway;
+                    if (value == 0)
+                        r = new Random();
+                    else if (value < 0)
+                        r = new Random(Math.Abs(value));
+                }
+            }
+            return r.NextDouble();            
+        }
+
+        private static object? INT(Stack<object?> stack)
+        {
+            bool success;
+            object? operand;
+
+            operand = GetOperand<double>(stack, out success);
+            if (operand != null && success)
+            {
+                stack.Pop();
+                try
+                {
+                    int ret = Convert.ToInt32(operand);
+                    return ret;
+                }
+                catch { };
+            }
+            return 0;
+        }
+
         private static T? GetOperand<T>(Stack<object?> stack, out bool success)
         {
             object? value;

@@ -47,6 +47,7 @@ namespace uBasic
         TOKEN_LIST,
         TOKEN_LOAD,
         TOKEN_RUN,
+        TOKEN_INPUT,
         TOKEN_STRING,
         TOKEN_COMMENT,
         TOKEN_COLON,
@@ -82,6 +83,7 @@ namespace uBasic
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_ELSE, new Regex(@"^else(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_END, new Regex(@"^end(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_RUN, new Regex(@"^run(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
+            new Tuple<Token_Type, Regex>(Token_Type.TOKEN_INPUT, new Regex(@"^input(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_PRINT, new Regex(@"^print(?=( |\t|\r|\n|\z))", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^'(?'comment'[^(\n|\r)]*)", RegexOptions.IgnoreCase)),
             new Tuple<Token_Type, Regex>(Token_Type.TOKEN_COMMENT, new Regex(@"^REM(?=( |\t|\r|\n))(?'comment'[^(\n|\r)]*)")),
@@ -162,6 +164,11 @@ namespace uBasic
                         t.Text = match.Item1 == Token_Type.TOKEN_COMMENT ? m.Groups["comment"].Value : m.Value;
                         t.Type = match.Item1;
                         columnNumber += t.Text.Length;
+                        if (t.Type == Token_Type.TOKEN_NEWLINE)
+                        {
+                            columnNumber = 1;
+                            lineNumber++;
+                        }
                         index += m.Value.Length;
                         foundMatch = true;                        
                         break;
