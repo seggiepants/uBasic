@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.Design;
+﻿using System;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
@@ -264,6 +265,8 @@ namespace uBasic
                     }
                     else // better be double/double, int/double, or double/int
                     {
+                        lhs = Convert.ToDouble(lhs);
+                        rhs = Convert.ToDouble(rhs);
                         switch (node.op?.Type)
                         {
                             case Token_Type.TOKEN_IS_EQUAL:
@@ -405,6 +408,8 @@ namespace uBasic
         {
             if (node.stmtLet != null)
                 return node.stmtLet.Interpret(runtime);
+            else if (node.stmtEnd != null)
+                return node.stmtEnd.Interpret(runtime);
             else if (node.stmtFor != null)
                 return node.stmtFor.Interpret(runtime);
             else if (node.stmtForNext != null)
@@ -419,6 +424,8 @@ namespace uBasic
                 return node.stmtIfElse.Interpret(runtime);
             else if (node.stmtIfEndIf != null)
                 return node.stmtIfEndIf.Interpret(runtime);
+            else if (node.stmtInput != null)
+                return node.stmtInput.Interpret(runtime);
             else if (node.stmtPrint != null)
                 return node.stmtPrint.Interpret(runtime);
             else if (node.stmtComment != null)
@@ -704,6 +711,122 @@ namespace uBasic
                 }
                 return sb.ToString();
             }
+        }
+
+        public static object? Interpret(this Parser.AstInput node, Runtime runtime)
+        {
+            if (node.ids == null || node.ids.ids == null || node.ids.ids.Count == 0)
+                return "";
+            
+            string? inputLine = null;            
+
+            while (inputLine == null)
+            {
+                if (node.prompt.Length > 0)
+                    Console.Write(node.prompt);
+
+                inputLine = Console.ReadLine();
+                if (inputLine != null)
+                {
+                    if (node.ids.ids.Count == 1)
+                    {
+                        SetInputVariable(node.ids.ids[0].Name, inputLine, runtime);
+                    }
+                    else
+                    {
+                        string[] parts = inputLine.Split(',', node.ids.ids.Count, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        if (parts.Length != node.ids.ids.Count)
+                        {
+                            Console.WriteLine($"Expected {node.ids.ids.Count} arguments but got {parts.Length}.");
+                            inputLine = "";
+                        }
+                        else
+                        {
+                            for (int i = 0; i < node.ids.ids.Count; i++)
+                            {
+                                SetInputVariable(node.ids.ids[i].Name, parts[i], runtime);
+                            }
+                        }
+                    }
+                }
+            }
+            return OK;
+        }
+
+        private static void SetInputVariable(string ID, string value, Runtime runtime)
+        {
+            bool preferString = ID.EndsWith("$");
+            bool preferFloat = ID.EndsWith("#");
+            bool preferInt = ID.EndsWith("%");
+            bool preferBool = false;
+
+            object? variable = null;
+            if (runtime.symbolTable.Contains(ID))
+                runtime.symbolTable.Get(ID);
+            if (variable != null)
+            {
+                if (variable.GetType() == typeof(AstString) || variable.GetType() == typeof(string))
+                    preferString = true;
+                else if (variable.GetType() == typeof(AstFloat) || variable.GetType() == typeof(float) || variable.GetType() == typeof(double))
+                    preferFloat = true;
+                else if (variable.GetType() == typeof(AstInteger) || variable.GetType() == typeof(int) || variable.GetType() == typeof(Int32) || variable.GetType() == typeof(Int64) || variable.GetType() == typeof(long))
+                    preferInt = true;
+                else if (variable.GetType() == typeof(AstBoolean) || variable.GetType() == typeof(bool) || variable.GetType() == typeof(Boolean))
+                    preferBool = true;
+            }
+
+            // preference and it parses correctly.
+            bool floatSuccess = Double.TryParse(value, out double floatValue);
+            if (preferFloat && floatSuccess)
+            {
+                runtime.symbolTable.Set(ID, floatValue);
+                return;
+            }
+
+            bool intSuccess = Int32.TryParse(value, out int intValue);
+            if (preferInt && intSuccess)
+            {
+                runtime.symbolTable.Set(ID, intValue);
+                return;
+            }
+
+            bool boolSuccess = Boolean.TryParse(value, out bool boolValue);
+            if (preferBool && boolSuccess)
+            {
+                runtime.symbolTable.Set(ID, boolValue);
+                return;
+            }
+
+            if (preferString)
+            {
+                runtime.symbolTable.Set(ID, value);
+                return;
+            }
+
+            // no preference take hardest parsed correctly first
+            if (floatSuccess && !Double.IsInteger(floatValue))
+            {
+                runtime.symbolTable.Set(ID, floatValue);
+                return;
+            }
+            else if (intSuccess)
+            {
+                runtime.symbolTable.Set(ID, intValue);
+                return;
+            }
+            else if (boolSuccess)
+            {
+                runtime.symbolTable.Set(ID, boolValue);
+                return;
+            }
+
+            runtime.symbolTable.Set(ID, value);
+        }
+
+        public static object? Interpret(this Parser.AstEnd node, Runtime runtime)
+        {
+            runtime.running = false;
+            return OK;
         }
     }
 }
