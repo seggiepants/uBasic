@@ -105,7 +105,7 @@ namespace uBasic
 
             public override string ToString()
             {
-                return $"VARIABLE: \"{Name}\"";
+                return Name;
             }
 
         }
@@ -139,7 +139,7 @@ namespace uBasic
             public override string ToString()
             {
                 if (variable != null & expression != null)
-                    return $"LET_STATMENT({variable} = {expression})";
+                    return $"LET {variable} = {expression}";
                 return "null";
             }
         }
@@ -220,19 +220,19 @@ namespace uBasic
             {
                 if (nodeBool != null)
                 {
-                    return $"CONSTANT(Bool) = {nodeBool.Value}";
+                    return $"{nodeBool.Value}";
                 }
                 else if (nodeInt != null)
                 {
-                    return $"CONSTANT(Integer) = {nodeInt.Value}";
+                    return $"{nodeInt.Value}";
                 }
                 else if (nodeFloat != null)
                 {
-                    return $"CONSTANT(Real) = {nodeFloat.Value}";
+                    return $"{nodeFloat.Value}";
                 }
                 else if (nodeString != null)
                 {
-                    return $"CONSTANT(String) = \"{nodeString.Value}\"";
+                    return $"\"{nodeString.Value}\"";
                 }
                 else
                     return $"Error: Bad Constant - NULL";
@@ -292,7 +292,7 @@ namespace uBasic
                     return "null";
                 if (args != null)
                     argString = args.ToString();
-                return $"FUNCTION_CALL({function}({argString}))";
+                return $"{function}({argString})";
             }
 
         }
@@ -385,7 +385,7 @@ namespace uBasic
             public override string ToString()
             {
                 if (powerExpression != null && value != null)
-                    return $"POWER_EXPRESSION({powerExpression} ^ {value})";
+                    return $"{powerExpression} ^ {value}";
                 else if (value != null)
                     return $"{value}";
                 else
@@ -418,7 +418,7 @@ namespace uBasic
             public override string ToString()
             {
                 if (powerExpression != null && negate)
-                    return $"NEGATE_EXPRESSION(-{powerExpression})";
+                    return $"-{powerExpression}";
                 else if (powerExpression != null)
                     return $"{powerExpression}";
                 else
@@ -475,7 +475,7 @@ namespace uBasic
                 }
 
                 if (negateExpression != null && multiplyExpression != null)
-                    return $"MULTIPLY_EXPRESSION({negateExpression} {operation} {multiplyExpression})";
+                    return $"{negateExpression} {operation} {multiplyExpression}";
                 else if (negateExpression != null)
                     return $"{negateExpression}";
                 else
@@ -529,7 +529,7 @@ namespace uBasic
                         operation = "-";
                 }
                 if (multiplyExpression != null && addExpression != null)
-                    return $"ADD_EXPRESSION({multiplyExpression} {operation} {addExpression})";
+                    return $"{multiplyExpression} {operation} {addExpression}";
                 else if (multiplyExpression != null)
                     return $"{multiplyExpression}";
                 else
@@ -585,7 +585,7 @@ namespace uBasic
             {
                 if (lhs != null && op != null && rhs != null)
                 {
-                    return $"COMPARE_EXPRESSION({lhs} {op.Text} {rhs})";
+                    return $"{lhs} {op.Text} {rhs}";
                 }
                 else if (lhs != null)
                 {
@@ -634,7 +634,7 @@ namespace uBasic
             {
                 if (negate && compare != null)
                 {
-                    return $"NOT_EXPRESSION(NOT {compare})";
+                    return $"NOT {compare}";
                 }
                 else if (compare != null)
                 {
@@ -687,7 +687,7 @@ namespace uBasic
             {
                 if (lhs != null && rhs != null)
                 {
-                    return $"AND_EXPRESSION({lhs} AND {rhs})";
+                    return $"{lhs} AND {rhs}";
                 }
                 if (lhs != null && rhs == null)
                 {
@@ -740,7 +740,7 @@ namespace uBasic
             {
                 if (lhs != null && rhs != null)
                 {
-                    return $"EXPRESSION({lhs} OR {rhs})";
+                    return $"{lhs} OR {rhs}";
                 }
                 if (lhs != null && rhs == null)
                 {
@@ -786,21 +786,8 @@ namespace uBasic
             {
                 if (expList == null)
                     return "";
-                StringBuilder sbArgs = new StringBuilder();
-                bool first = true;
-                foreach (AstExpression exp in expList)
-                {
-                    if (first)
-                    {
-                        first = false;
-                    }
-                    else
-                    {
-                        sbArgs.Append(", ");
-                    }
-                    sbArgs.Append($"{exp}");
-                }
-                return sbArgs.ToString();
+                return String.Join(", ", (from exp in expList
+                                           select $"{exp}"));
             }
         }
 
@@ -810,6 +797,7 @@ namespace uBasic
             public AstEnd? stmtEnd;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
+            public AstGosub? stmtGosub;
             public AstGoto? stmtGoto;
             public AstIf? stmtIf;
             public AstIfElseIf? stmtIfElseIf;
@@ -818,6 +806,7 @@ namespace uBasic
             public AstInput? stmtInput;
             public AstLet? stmtLet;
             public AstPrint? stmtPrint;
+            public AstReturn? stmtReturn;
 
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
@@ -825,6 +814,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -833,6 +823,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstComment? stmt)
@@ -841,6 +832,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -849,6 +841,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstEnd? stmt)
@@ -857,6 +850,7 @@ namespace uBasic
                 stmtEnd = stmt;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -865,6 +859,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstFor? stmt)
@@ -873,6 +868,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = stmt;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -881,6 +877,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstForNext? stmt)
@@ -889,6 +886,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = stmt;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -897,6 +895,25 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
+            }
+
+            public void Set(AstGosub? stmt)
+            {
+                stmtComment = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGosub = stmt;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstGoto? stmt)
@@ -905,6 +922,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = stmt;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -913,6 +931,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstIf? stmt)
@@ -921,6 +940,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = stmt;
                 stmtIfElseIf = null;
@@ -929,6 +949,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstIfElseIf? stmt)
@@ -937,6 +958,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = stmt;
@@ -945,6 +967,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstIfElse? stmt)
@@ -953,6 +976,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -961,6 +985,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstIfEndIf? stmt)
@@ -969,6 +994,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -977,6 +1003,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstInput? stmt)
@@ -985,6 +1012,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -993,6 +1021,7 @@ namespace uBasic
                 stmtInput = stmt;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstLet? stmt)
@@ -1001,6 +1030,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -1009,6 +1039,7 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = stmt;
                 stmtPrint = null;
+                stmtReturn = null;
             }
 
             public void Set(AstPrint? stmt)
@@ -1017,6 +1048,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
                 stmtIfElseIf = null;
@@ -1025,6 +1057,26 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = stmt;
+                stmtReturn = null;
+            }
+
+
+            public void Set(AstReturn? stmt)
+            {
+                stmtComment = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtReturn = stmt;
             }
 
             public AstNode? Get()
@@ -1040,6 +1092,9 @@ namespace uBasic
 
                 if (stmtForNext != null)
                     return stmtForNext;
+
+                if (stmtGosub != null)
+                    return stmtGosub;
 
                 if (stmtGoto != null)
                     return stmtGoto;
@@ -1065,6 +1120,9 @@ namespace uBasic
                 if (stmtPrint != null)
                     return stmtPrint;
 
+                if (stmtReturn != null)
+                    return stmtReturn;
+
                 return null;
             }
 
@@ -1078,6 +1136,8 @@ namespace uBasic
                     return $"{stmtFor}";
                 else if (stmtForNext != null)
                     return $"{stmtForNext}";
+                else if (stmtGosub != null)
+                    return $"{stmtGosub}";
                 else if (stmtGoto != null)
                     return $"{stmtGoto}";
                 else if (stmtIf != null)
@@ -1094,8 +1154,10 @@ namespace uBasic
                     return $"{stmtLet}";
                 else if (stmtPrint != null)
                     return $"{stmtPrint}";
+                else if (stmtReturn != null)
+                    return $"{stmtReturn}";
 
-                return "";
+                    return "";
             }
         }
 
@@ -1110,7 +1172,7 @@ namespace uBasic
 
             public override string ToString()
             {
-                return $"COMMENT({comment.Text})";
+                return $"'{comment.Text}";
             }
 
         }
@@ -1150,50 +1212,56 @@ namespace uBasic
             {
                 if (statements == null)
                     return "";
-                StringBuilder sbStmt = new StringBuilder();
-                bool first = true;
-                foreach (AstStatement stmt in statements)
-                {
-                    if (first)
-                    {
-                        first = false;
-                    }
-                    else
-                    {
-                        sbStmt.Append(" : ");
-                    }
-                    sbStmt.Append($"{stmt}");
-                }
-                return sbStmt.ToString();
+                return String.Join(" : ", (from stmt in statements select $"{stmt}"));
             }
         }
 
         public class AstLine : AstNode
         {
             public int? line;
+            public string? label;
             public AstStatements? statements;
             public AstLine(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 statements = null;
+                this.label = null;
                 line = null;
             }
 
             public void Set(AstStatements stmts)
             {
                 line = null;
+                this.label = null;
                 statements = stmts;
             }
 
             public void Set(int line, AstStatements stmts)
             {
                 this.line = line;
+                this.label = null;
+                statements = stmts;
+            }
+
+            public void Set(string label, AstStatements stmts)
+            {
+                this.line = null;
+                this.label = label;
+                statements = stmts;
+            }
+
+            public void Set(int? line, string? label, AstStatements? stmts)
+            {
+                this.line = line;
+                this.label = label;
                 statements = stmts;
             }
 
             public override string ToString()
             {
-                if (statements != null && line != null)
+                if (statements != null && line != null && label == null)
                     return $"{line} {statements}";
+                else if (statements != null && line == null && label != null)
+                    return $"{label}: {statements}";
                 else if (statements != null)
                     return $"{statements}";
                 return "null";
@@ -1226,14 +1294,7 @@ namespace uBasic
                 if (lines == null)
                     return "null";
 
-                StringBuilder sb = new();
-                sb.AppendLine("LINES(");
-                foreach (AstLine line in lines)
-                {
-                    sb.AppendLine($"{line}");
-                }
-                sb.AppendLine(")");
-                return sb.ToString();
+                return String.Join("", (from line in lines select $"{line}\n"));
             }
 
         }
@@ -1279,12 +1340,7 @@ namespace uBasic
             {
                 if (lines != null && lines.lines != null)
                 {
-                    StringBuilder sb = new();
-                    foreach (AstLine line in lines.lines)
-                    {
-                        sb.AppendLine($"{line}");
-                    }
-                    return sb.ToString();
+                    return String.Join("", (from line in lines.lines select $"{line}\n"));
                 }
                 else
                     return "";
@@ -1612,6 +1668,55 @@ namespace uBasic
             public override string ToString()
             {
                 return "END";
+            }
+        }
+
+        public class AstGosub : AstNode
+        {
+            public string label = "";
+            public int line = -1;
+
+            public AstGosub(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                label = "";
+                line = -1;
+            }
+
+            public void Set(string label)
+            {
+                this.label = label;
+                this.line = -1;
+            }
+
+            public void Set(int line)
+            {
+                this.label = "";
+                this.line = line;
+            }
+
+            public override string ToString()
+            {
+                string target;
+                if (label.Length > 0)
+                    target = label;
+                else if (line >= 0)
+                    target = line.ToString();
+                else
+                    target = "";
+
+                return $"GOSUB {target}";
+            }
+        }
+
+        public class AstReturn : AstNode
+        {
+            public AstReturn(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+            }
+
+            public override string ToString()
+            {
+                return "RETURN";
             }
         }
 
