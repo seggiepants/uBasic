@@ -19,6 +19,7 @@ namespace uBasic
         private int counter;
         public Stack<int> forStack;
         public Stack<int> ifStack;
+        public Stack<int> callStack;
 
         public Runtime()
         {
@@ -33,6 +34,7 @@ namespace uBasic
             counter = 1;
             forStack = new Stack<int>();
             ifStack = new Stack<int>();
+            callStack = new Stack<int>();
         }
 
         public void Clear()
@@ -48,6 +50,7 @@ namespace uBasic
             counter = 1;
             forStack.Clear();
             ifStack.Clear();
+            callStack.Clear();
         }
 
         public int NextCounter()

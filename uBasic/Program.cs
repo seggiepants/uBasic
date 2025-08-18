@@ -62,16 +62,11 @@ namespace uBasic
                             Tuple<int, Parser.AstLine?> line = Basic.ParseLine(tokens, i, runtime);
                             if (line.Item2 != null)
                             {
-                                if (line.Item2.statements != null && line.Item2.statements.statements != null)
-                                {
-                                    if (line.Item2.line != null)
-                                        runtime.lineNumbers.Add((int)line.Item2.line, lineNum);
-                                    //else
-                                        //Console.WriteLine(line.Item2.Interpret(runtime));
-                                        //Console.WriteLine(runtime.Run());
-                                }
-                                //else
-                                    //Console.WriteLine(line.Item2.Interpret(runtime));
+                                if (line.Item2.line != null)
+                                    runtime.lineNumbers.Add((int)line.Item2.line, lineNum);
+                                if (line.Item2.label != null)
+                                    runtime.lineLabels.Add((string)line.Item2.label, lineNum);
+
                                 i = line.Item1 - 1;
                             }
                             else

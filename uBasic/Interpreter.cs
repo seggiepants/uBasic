@@ -25,6 +25,7 @@ namespace uBasic
         {
             if (node.Type == Token_Type.TOKEN_LIST)
             {
+                bool showInternal = false;
                 StringBuilder sb = new();
                 for (int i = 0; i < runtime.program.Count; i++)
                 {
@@ -35,16 +36,28 @@ namespace uBasic
                                  where pair.Value == i
                                  select pair.Key).ToArray<string>();
                         foreach(string label in labels)
-                            sb.AppendLine(label + ":");
+                            if (!label.StartsWith("#") || showInternal)
+                                sb.AppendLine(label + ":");
                     }
                     string lineNum = "";
                     if (runtime.lineNumbers.ContainsValue(i))
                     {
-                        lineNum = (from pair in runtime.lineNumbers
-                                        where pair.Value == i
-                                        select pair.Key).First().ToString() + " ";
+                        lineNum = string.Join('\n', (from pair in runtime.lineNumbers
+                                   where pair.Value == i
+                                   select $"{pair.Key} "));                        
                     }
-                    sb.AppendLine($"{lineNum}{stmt}");
+                    if (stmt.stmtIf != null && stmt.stmtIf.multiLine == false)
+                    {
+                        sb.Append($"{lineNum}{stmt} ");
+                    }
+                    else if (stmt.stmtPrint != null && stmt.stmtPrint.emitCrlf == false)
+                    {
+                        sb.AppendLine($"{lineNum}{stmt};");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"{lineNum}{stmt}");
+                    }
                 }
                 return sb.ToString();
             }
@@ -414,6 +427,8 @@ namespace uBasic
                 return node.stmtFor.Interpret(runtime);
             else if (node.stmtForNext != null)
                 return node.stmtForNext.Interpret(runtime);
+            else if (node.stmtGosub != null)
+                return node.stmtGosub.Interpret(runtime);
             else if (node.stmtGoto != null)
                 return node.stmtGoto.Interpret(runtime);
             else if (node.stmtIf != null)
@@ -428,6 +443,8 @@ namespace uBasic
                 return node.stmtInput.Interpret(runtime);
             else if (node.stmtPrint != null)
                 return node.stmtPrint.Interpret(runtime);
+            else if (node.stmtReturn != null)
+                return node.stmtReturn.Interpret(runtime);
             else if (node.stmtComment != null)
                 return null; // Nothing to interpret
 
@@ -826,6 +843,45 @@ namespace uBasic
         public static object? Interpret(this Parser.AstEnd node, Runtime runtime)
         {
             runtime.running = false;
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstGosub node, Runtime runtime)
+        {
+            if (node.line != -1)
+            {
+                if (runtime.lineNumbers.ContainsKey(node.line))
+                {
+                    runtime.callStack.Push(runtime.instructionPointer);
+                    runtime.instructionPointer = runtime.lineNumbers[node.line];
+                }
+                else
+                {
+                    runtime.instructionPointer = runtime.program.Count + 1;
+                    return null;
+                }
+            }
+            else if (node.label != "")
+            {
+                if (runtime.lineLabels.ContainsKey(node.label))
+                {
+                    runtime.callStack.Push(runtime.instructionPointer);
+                    runtime.instructionPointer = runtime.lineLabels[node.label];
+                }
+                else
+                {
+                    runtime.instructionPointer = runtime.program.Count + 1;
+                    return null;
+                }
+            }
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstReturn node, Runtime runtime)
+        {
+            if (runtime.callStack.Count == 0)
+                return new Exception("Call stack is empty");
+            runtime.instructionPointer = runtime.callStack.Pop() + 1;
             return OK;
         }
     }
