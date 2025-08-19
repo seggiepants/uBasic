@@ -241,32 +241,17 @@ namespace uBasic
 
         public class AstFunctionCall : AstNode
         {
-            public AstVariable? function;
+            public string function;
             public AstExpressionList? args;
             public AstFunctionCall(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
-                function = null;
+                function = t.Text;
                 args = null;
             }
 
-            public AstNode? Get()
+            public void Set(AstExpressionList exps)
             {
-                if (function != null && args != null)
-                    return this;
-                if (function != null)
-                    return function;
-                else return null;
-            }
-
-            public void Set(AstVariable? name, AstExpressionList exps)
-            {
-                function = name;
                 args = exps;
-            }
-
-            public void Set(AstVariable? name)
-            {
-                function = name;
             }
 
             public void AddArg(AstExpression? exp)
@@ -309,22 +294,36 @@ namespace uBasic
             public AstVariable? nodeVariable;
             public AstConstant? nodeConstant;
             public AstExpression? nodeExpression;
-            public AstFunctionCall? nodeFunction;
+            public AstFunctionCall? nodeFunctionCall;
 
-            public AstValue(Token t) : base(t.LineNumber, t.ColumnNumber) { }
+            public AstValue(Token t) : base(t.LineNumber, t.ColumnNumber) 
+            {
+                nodeVariable = null;
+                nodeConstant = null;
+                nodeExpression = null;
+                nodeFunctionCall = null;
+            }
 
             public void Set(AstExpression node)
             {
                 nodeConstant = null;
                 nodeExpression = node;
-                nodeFunction = null;
+                nodeFunctionCall = null;
                 nodeVariable = null;
             }
+            public void Set(AstFunctionCall node)
+            {
+                nodeConstant = null;
+                nodeExpression = null;
+                nodeFunctionCall = node;
+                nodeVariable = null;
+            }
+
             public void Set(AstVariable node)
             {
                 nodeConstant = null;
                 nodeExpression = null;
-                nodeFunction = null;
+                nodeFunctionCall = null;
                 nodeVariable = node;
             }
 
@@ -332,21 +331,12 @@ namespace uBasic
             {
                 nodeConstant = node;
                 nodeExpression = null;
-                nodeFunction = null;
-                nodeVariable = null;
-            }
-
-            public void Set(AstFunctionCall node)
-            {
-                nodeConstant = null;
-                nodeExpression = null;
-                nodeFunction = node;
                 nodeVariable = null;
             }
 
             public AstNode? Get()
             {
-                return nodeConstant ?? nodeExpression ?? (AstNode?)nodeFunction ?? nodeVariable ?? null;
+                return nodeConstant ?? nodeExpression ?? nodeFunctionCall ?? (AstNode?) nodeVariable ?? null;
             }
 
             public override string ToString()
@@ -797,6 +787,7 @@ namespace uBasic
             public AstEnd? stmtEnd;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
+            public AstFunctionCall? stmtFunctionCall;
             public AstGosub? stmtGosub;
             public AstGoto? stmtGoto;
             public AstIf? stmtIf;
@@ -808,12 +799,14 @@ namespace uBasic
             public AstPrint? stmtPrint;
             public AstReturn? stmtReturn;
 
+
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -832,6 +825,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -850,6 +844,7 @@ namespace uBasic
                 stmtEnd = stmt;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -868,6 +863,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = stmt;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -886,6 +882,26 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = stmt;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtReturn = null;
+            }
+
+            public void Set(AstFunctionCall? stmt)
+            {
+                stmtComment = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = stmt;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -904,6 +920,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = stmt;
                 stmtGoto = null;
                 stmtIf = null;
@@ -922,6 +939,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = stmt;
                 stmtIf = null;
@@ -940,6 +958,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = stmt;
@@ -958,6 +977,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -976,6 +996,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -994,6 +1015,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -1012,6 +1034,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -1030,6 +1053,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -1048,6 +1072,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -1067,6 +1092,7 @@ namespace uBasic
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
+                stmtFunctionCall = null;
                 stmtGosub = null;
                 stmtGoto = null;
                 stmtIf = null;
@@ -1092,6 +1118,9 @@ namespace uBasic
 
                 if (stmtForNext != null)
                     return stmtForNext;
+
+                if (stmtFunctionCall != null)
+                    return stmtFunctionCall;
 
                 if (stmtGosub != null)
                     return stmtGosub;
@@ -1136,6 +1165,8 @@ namespace uBasic
                     return $"{stmtFor}";
                 else if (stmtForNext != null)
                     return $"{stmtForNext}";
+                else if (stmtFunctionCall != null)
+                    return $"{stmtFunctionCall}";
                 else if (stmtGosub != null)
                     return $"{stmtGosub}";
                 else if (stmtGoto != null)

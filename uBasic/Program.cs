@@ -109,12 +109,12 @@ namespace uBasic
 
                         if (tokens != null && tokens.Count > 0 && runtime.program.Count > 0 && runtime == repl)
                         {
-                            runtime.Run();
+                            Console.WriteLine(runtime.Run());
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex.ToString());
+                        Console.WriteLine(ex.Message);
                     }
                 }
             }
