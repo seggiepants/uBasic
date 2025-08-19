@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace uBasic
 {
@@ -79,9 +72,27 @@ namespace uBasic
             fnTable.Add("ABS", ABS);
             fnTable.Add("RND", RND);
             fnTable.Add("INT", INT);
+            fnTable.Add("CHDIR", CHDIR);
+            fnTable.Add("FILES", FILES);
+            fnTable.Add("KILL", KILL);
+            fnTable.Add("MKDIR", MKDIR);
+            fnTable.Add("RMDIR", RMDIR);
+            fnTable.Add("NAME", NAME);
+            fnTable.Add("CURDIR", CURDIR);
+            fnTable.Add("TAB", TAB);
+            fnTable.Add("TAB$", TAB); 
+            fnTable.Add("CURSOR_LEFT", CURSOR_LEFT);
+            fnTable.Add("CURSOR_TOP", CURSOR_TOP);
+            fnTable.Add("CONSOLE_WIDTH", CONSOLE_WIDTH);
+            fnTable.Add("CONSOLE_HEIGHT", CONSOLE_HEIGHT);
+            fnTable.Add("COLOR", COLOR);
+            fnTable.Add("RESET_COLOR", RESET_COLOR);
+            fnTable.Add("LOCATE", LOCATE);
+            fnTable.Add("CLS", CLS);
         }
 
         // To be implemented:
+        // File Copy?
         // INSTR
         // INSTRREV
         // STRING/STRING$
@@ -91,16 +102,12 @@ namespace uBasic
         // CHR/CHR$
         // SQR -- Square Root
         // FIX -- Convert to Integer dumping the decimal part.
-        // ABS -- Absolute Value
         // ATN -- Arc Tangent
         // ATAN2 -- Arc Tangent -- Nicer
         // MOD -> This needs to be at root level with +-*/
         // SGN -- 1 = Positive, 0 = Zero, -1 = Negative
         // EXP -- e ^ X
         // LOG -- natural logarithm
-        // INPUT -> Move to parser level non-standard
-        // PRINT -> Move to parser level non-standard
-        // RND -- Random number generator.
         // -- MORE TO COME --
 
         public static object? LEN(Stack<object?> stack)
@@ -496,6 +503,273 @@ namespace uBasic
             }
             return 0;
         }
+
+        // Console operations
+        private static object? TAB(Stack<object?> stack)
+        {
+            // TAB(TabStop)
+            bool success;
+            object? operand;
+
+            operand = GetOperand<int>(stack, out success);
+            if (operand != null && success)
+            {
+                stack.Pop();
+                try
+                {
+                    int ret = Convert.ToInt32(operand);
+                    int left = Console.CursorLeft;
+                    if ((int)operand - left <= 0)
+                        return "";
+                    else
+                        return "".PadRight((int) operand - left, ' ');
+                }
+                catch { }                
+            }
+            return "";
+        }
+
+        public static object? CLS(Stack<object?> stack)
+        {
+            Console.Clear();
+            return null;
+        }
+
+        private static object? CURSOR_LEFT(Stack<object?> stack)
+        {
+            return Console.CursorLeft;
+        }
+
+        private static object? CURSOR_TOP(Stack<object?> stack)
+        {
+            return Console.CursorTop;
+        }
+
+        private static object? CONSOLE_WIDTH(Stack<object?> stack)
+        {
+            return Console.WindowWidth;
+        }
+
+        private static object? CONSOLE_HEIGHT(Stack<object?> stack)
+        {
+            return Console.WindowHeight;
+        }
+
+        private static object? COLOR(Stack<object?> stack)
+        {
+            // COLOR fg, [bg]
+            int? fg = null;
+            int? bg= null;
+            if (stack.Count >= 1 && stack.Peek().GetType() == typeof(int))
+            {
+                fg = (int?)stack.Pop();
+            }
+
+            if (stack.Count >= 1 && stack.Peek().GetType() == typeof(int))
+            {
+                bg = (int?)stack.Pop();
+            }
+            
+            if (fg != null)
+            {
+                if (fg >= 0 && fg <= 15)
+                    Console.ForegroundColor = (ConsoleColor)((int)fg);
+
+                if (bg >= 0 && bg <= 15)
+                    Console.BackgroundColor = (ConsoleColor)((int)bg);
+            }
+            return null;
+        }
+
+        private static object? RESET_COLOR(Stack<object?> stack)
+        {
+            Console.ResetColor();
+            return null;
+        }
+
+        private static object? LOCATE(Stack<object?> stack)
+        {
+            // COLOR fg, [bg]
+            int? x = null;
+            int? y = null;
+            if (stack.Count >= 2 && stack.Peek().GetType() == typeof(int))
+            {
+                x = (int?)stack.Pop();
+                y = (int?)stack.Pop();
+            }
+
+            if (x != null && y != null)
+            {
+                Console.SetCursorPosition((int)x, (int)y);
+            }
+            else
+                throw new Exception("Invalid arguments expected x, y");
+
+            return null;
+        }
+
+
+        // All of the file handling functions are going to be functions now 
+        // This requires them to call with parenthesis but it frees up the lexer and parser sooo much.
+        private static object? CHDIR(Stack<object?> stack)
+        {
+            // CHDIR pathname$
+            string? pathName = null;
+            if (stack.Count > 0 && stack.Peek().GetType() == typeof(string))
+                pathName = (string?)stack.Pop();
+            if (pathName == null)
+            {
+                throw new Exception("No operand of the correct type supplied.");
+            }
+
+            if (pathName != null && Directory.Exists(pathName))
+                Directory.SetCurrentDirectory(pathName);
+            return Directory.GetCurrentDirectory();
+        }
+
+        private static object? CURDIR(Stack<object?> stack)
+        {
+            // CHDIR pathname$
+            return Directory.GetCurrentDirectory();
+        }
+
+        private static object? FILES(Stack<object?> stack)
+        {
+            // FILES fileSpec$
+            // ZZZ - I kind of want to return a string array instead of print to the console.
+            string? fileSpec = null;
+            string path = "", pattern = "";
+            if (stack.Count > 0 && stack.Peek().GetType() == typeof(string))
+                fileSpec = (string?)stack.Pop();
+            if (fileSpec == null)
+            {
+                fileSpec = "*.*";
+            }
+
+            if (fileSpec != null)
+            {
+                int index = fileSpec.LastIndexOf(Path.DirectorySeparatorChar);
+                if (index == -1)
+                {
+                    path = ".";
+                    pattern = fileSpec;
+                }
+                else
+                {
+                    path = fileSpec.Substring(0, index);
+                    pattern = fileSpec.Substring(index + 1);
+                }
+            }
+            return string.Join('\n', Directory.GetFiles(path, pattern));
+        }
+
+        private static object? KILL(Stack<object?> stack)
+        {
+            // KILL fileSpec$ -- may include *, and ? wildcards.
+            string? fileSpec = null;
+            if (stack.Count > 0 && stack.Peek().GetType() == typeof(string))
+                fileSpec = (string?)stack.Pop();
+            if (fileSpec == null)
+            {
+                fileSpec = "*.*";
+            }
+
+            if (fileSpec != null)
+            {
+                string path, pattern;
+                int index = fileSpec.LastIndexOf(Path.DirectorySeparatorChar);
+                if (index == -1)
+                {
+                    path = ".";
+                    pattern = fileSpec;
+                }
+                else
+                {
+                    path = fileSpec.Substring(0, index);
+                    pattern = fileSpec.Substring(index + 1);
+                }
+                foreach (string file in Directory.GetFiles(path, pattern))
+                {
+                    File.Delete(file);
+                }
+            }
+            return null;
+        }
+
+        private static object? MKDIR(Stack<object?> stack)
+        {
+            // MKDIR pathname$
+            string? pathName = null;
+            if (stack.Count > 0 && stack.Peek().GetType() == typeof(string))
+                pathName = (string?)stack.Pop();
+            if (pathName == null)
+            {
+                throw new Exception("No operand of the correct type supplied.");
+            }
+
+            if (pathName != null && Directory.Exists(pathName))
+            {
+                if (Directory.Exists(pathName))
+                    throw new Exception("Directory already exists");
+
+                Directory.CreateDirectory(pathName);
+            }
+            return pathName;
+        }
+
+        private static object? NAME(Stack<object?> stack)
+        {
+            // NAME oldspec$ AS newspec$ -- may include path so this works as move too.
+            string? source = null;
+            string? target = null;
+            if (stack.Count >= 2 && stack.Peek().GetType() == typeof(string))
+            {
+                source = (string?)stack.Pop();
+                target = (string?)stack.Pop();
+            }
+
+            if (source == null)
+            {
+                throw new Exception("No source file of the correct type supplied.");
+            }
+            if (target == null)
+            {
+                throw new Exception("No target file of the correct type supplied.");
+            }
+
+            if (!File.Exists(source))
+                throw new Exception("Source file not found.");
+
+            if (File.Exists(target))
+                throw new Exception("Target file already exists.");
+
+            File.Move(source, target);
+
+            return target;
+        }
+
+        private static object? RMDIR(Stack<object?> stack)
+        {
+            // RMDIR pathname$
+            string? pathName = null;
+            if (stack.Count > 0 && stack.Peek().GetType() == typeof(string))
+                pathName = (string?)stack.Pop();
+            if (pathName == null)
+            {
+                throw new Exception("No operand of the correct type supplied.");
+            }
+
+            if (pathName != null && Directory.Exists(pathName))
+            {
+                DirectoryInfo di = new(pathName);
+                if (di.GetFiles().Length + di.GetDirectories().Length > 0)
+                    throw new Exception("Directory not empty");
+
+                Directory.Delete(pathName);
+            }
+            return null;
+        }
+
 
         private static T? GetOperand<T>(Stack<object?> stack, out bool success)
         {

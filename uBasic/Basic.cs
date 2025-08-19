@@ -45,12 +45,13 @@ namespace uBasic
                 | ID '(' <Expression List> ')'
                 | <Constant> 
             */
-            Token t = tokens[Index];
+            int i = Index;
+            Token t = tokens[i];
             Parser.AstValue val = new Parser.AstValue(t);
 
-            if (t.Type == Token_Type.TOKEN_LPAREN)
+            if (tokens.Count > i + 1 && t.Type == Token_Type.TOKEN_LPAREN)
             {
-                Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, Index + 1, runtime);
+                Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, i + 1, runtime);
                 if (expression.Item2 != null)
                 {
                     if (tokens[expression.Item1].Type == Token_Type.TOKEN_RPAREN)
@@ -66,8 +67,15 @@ namespace uBasic
             }
             else if (t.Type == Token_Type.TOKEN_IDENTIFIER)
             {
-                // Is this a variable or a function call?
+                Tuple<int, Parser.AstFunctionCall?> functionCall = ParseFunctionCall(tokens, Index, runtime);
+                if (functionCall.Item2 != null)
+                {
+                    val.Set(functionCall.Item2);
+                    return new Tuple<int, Parser.AstValue?>(functionCall.Item1, val);
+                }
+                // Is this a variable or an array access?
                 Parser.AstVariable id = new Parser.AstVariable(t);
+                /*
                 Parser.AstExpressionList? args = null;
                 if (tokens.Count > Index + 1 && (tokens[Index + 1].Type == Token_Type.TOKEN_LPAREN))
                 {
@@ -103,6 +111,7 @@ namespace uBasic
                     return new Tuple<int, Parser.AstValue?>(Index, val);
                 }
                 else
+                */
                 {
                     // Variable
                     val.Set(id);
@@ -622,6 +631,15 @@ namespace uBasic
                 runtime.lineLabels.Add(forNextStatement.Item2.label, lineNum);
                 runtime.program.Add(statement);
                 return new Tuple<int, Parser.AstStatement?>(forNextStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstFunctionCall> functionCallStatement = ParseFunctionCall(tokens, Index, runtime);
+            if (functionCallStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(functionCallStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(functionCallStatement.Item1, statement);
             }
 
             Tuple<int, Parser.AstGosub?> gosubStatement = ParseGosubStatement(tokens, Index, runtime);
@@ -1489,6 +1507,54 @@ namespace uBasic
             i++;
 
             return new Tuple<int, Parser.AstReturn?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstFunctionCall?> ParseFunctionCall(List<Token> tokens, int Index, Runtime runtime)
+        {
+            string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP"};
+            int i = Index;
+            Tuple<int, Parser.AstFunctionCall?> failure = new(Index, null);            
+            if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+            {
+                return failure;
+            }
+            Parser.AstFunctionCall ret = new(tokens[i]);
+            i++;
+            if (noParameters.Contains(ret.function.ToUpperInvariant()))
+                return new Tuple<int, Parser.AstFunctionCall?>(i, ret);
+
+            if (tokens.Count > i & (tokens[i].Type == Token_Type.TOKEN_LPAREN))
+            {
+                // Function call
+                Parser.AstExpressionList? args = new(tokens[i]);
+                i++;
+                bool readArgs = true;
+                while (readArgs)
+                {
+                    Tuple<int, Parser.AstExpression?> expression = ParseExpression(tokens, i, runtime);
+                    if (expression.Item2 != null)
+                    {
+                        i = expression.Item1;
+                        args.Add(expression.Item2);
+                    }
+
+                    if (tokens.Count > i && (tokens[i].Type == Token_Type.TOKEN_RPAREN))
+                    {
+                        i++;
+                        readArgs = false;
+                    }
+                    else if (tokens.Count > i && (tokens[i].Type != Token_Type.TOKEN_COMMA))
+                    {
+                        // Bad expression list.
+                        throw new Exception($"Expected comma or ')' on Line: {tokens[i].LineNumber}, Column: {tokens[i].ColumnNumber}.");
+                    }
+                    else // Token Type = Comma
+                        i++;
+                }                
+                ret.Set(args);
+                return new Tuple<int, Parser.AstFunctionCall?>(i, ret);
+            }
+            return failure;
         }
     }
 }

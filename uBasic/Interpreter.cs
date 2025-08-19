@@ -89,11 +89,8 @@ namespace uBasic
                 return node.nodeConstant.Interpret(runtime);
             else if (node.nodeExpression != null)
                 return node.nodeExpression.Interpret(runtime);
-            else if (node.nodeFunction != null)
-            {
-                // ZZZ Broken
-                return node.nodeFunction.Interpret(runtime);
-            }
+            else if (node.nodeFunctionCall != null)
+                return node.nodeFunctionCall.Interpret(runtime);
             else if (node.nodeVariable != null)
                 return node.nodeVariable.Interpret(runtime);
 
@@ -103,7 +100,7 @@ namespace uBasic
         public static object? Interpret(this Parser.AstFunctionCall node, Runtime runtime)
         {
             if (node.function != null)
-                return runtime.fnTable.Call(node.function.Name, node.args, runtime);
+                return runtime.fnTable.Call(node.function, node.args, runtime);
             return null;
         }
 
@@ -276,6 +273,26 @@ namespace uBasic
                                 throw new Exception("Invaild comparison operation.");
                         }
                     }
+                    else if (lhs.GetType() == typeof(string) && rhs.GetType() == typeof(string))
+                    {
+                        switch (node.op?.Type)
+                        {
+                            case Token_Type.TOKEN_IS_EQUAL:
+                                return (string)lhs == (string)rhs;
+                            case Token_Type.TOKEN_NOT_EQUAL:
+                                return (string)lhs != (string)rhs;
+                            case Token_Type.TOKEN_GREATER_THAN:
+                                return ((string)lhs).CompareTo((string)rhs) > 0;
+                            case Token_Type.TOKEN_GREATER_EQUAL:
+                                return ((string)lhs).CompareTo((string)rhs) > 0;
+                            case Token_Type.TOKEN_LESS_THAN:
+                                return ((string)lhs).CompareTo((string)rhs) < 0;
+                            case Token_Type.TOKEN_LESS_EQUAL:
+                                return ((string)lhs).CompareTo((string)rhs) <= 0;
+                            default:
+                                throw new Exception("Invaild comparison operation.");
+                        }
+                    }
                     else // better be double/double, int/double, or double/int
                     {
                         lhs = Convert.ToDouble(lhs);
@@ -427,6 +444,8 @@ namespace uBasic
                 return node.stmtFor.Interpret(runtime);
             else if (node.stmtForNext != null)
                 return node.stmtForNext.Interpret(runtime);
+            else if (node.stmtFunctionCall != null)
+                return node.stmtFunctionCall.Interpret(runtime);
             else if (node.stmtGosub != null)
                 return node.stmtGosub.Interpret(runtime);
             else if (node.stmtGoto != null)
@@ -707,10 +726,11 @@ namespace uBasic
             } 
             else
             {
+                foreach (AstExpression exp in node.exps.exps)
+                    Console.Write(exp.Interpret(runtime));
+
                 if (node.emitCrlf)
-                    Console.WriteLine(node.exps.Interpret(runtime));
-                else
-                    Console.Write(node.exps.Interpret(runtime));
+                    Console.WriteLine("");
             }
             return OK;
         }
@@ -779,7 +799,7 @@ namespace uBasic
 
             object? variable = null;
             if (runtime.symbolTable.Contains(ID))
-                runtime.symbolTable.Get(ID);
+                variable = runtime.symbolTable.Get(ID);
             if (variable != null)
             {
                 if (variable.GetType() == typeof(AstString) || variable.GetType() == typeof(string))
