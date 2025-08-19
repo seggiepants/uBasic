@@ -108,6 +108,8 @@ namespace uBasic
         // SGN -- 1 = Positive, 0 = Zero, -1 = Negative
         // EXP -- e ^ X
         // LOG -- natural logarithm
+        // BEEP
+        // SOUND
         // -- MORE TO COME --
 
         public static object? LEN(Stack<object?> stack)
