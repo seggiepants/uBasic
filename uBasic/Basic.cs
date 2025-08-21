@@ -1477,10 +1477,10 @@ namespace uBasic
             int i = Index;
             Tuple<int, Parser.AstIDList?> failure = new Tuple<int, Parser.AstIDList?>(Index, null);
             Parser.AstIDList ret = new(tokens[i]);
-            Tuple<int, Parser.AstArrayAccess?> arrayAccess = new(i, null);
-            Tuple<int, Parser.AstValue?> variable = ParseValue(tokens, i, runtime);
-            if (variable.Item2 == null || variable.Item2.nodeVariable == null)
-                arrayAccess = ParseArrayAccess(tokens, i, runtime);
+            Tuple<int, Parser.AstArrayAccess?> arrayAccess = ParseArrayAccess(tokens, i, runtime);
+            Tuple<int, Parser.AstValue?> variable = new(i, null);
+            if (arrayAccess.Item2 == null)
+                variable = ParseValue(tokens, i, runtime);
             while ((variable.Item2 != null && variable.Item2.nodeVariable != null) || arrayAccess.Item2 != null)
             {
                 if (variable.Item2 != null && variable.Item2.nodeVariable != null)
@@ -1496,10 +1496,10 @@ namespace uBasic
 
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_COMMA)
                 {
-                    variable = ParseValue(tokens, i + 1, runtime);
-                    if (variable.Item2 == null || variable.Item2.nodeVariable == null)
+                    arrayAccess = ParseArrayAccess(tokens, i + 1, runtime);
+                    if (arrayAccess.Item2 == null)
                     {
-                        arrayAccess = ParseArrayAccess(tokens, i + 1, runtime);
+                        variable = ParseValue(tokens, i + 1, runtime);                        
                     }
                 }
                 else
