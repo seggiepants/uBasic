@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 using static uBasic.Parser;
 
 namespace uBasic
@@ -71,7 +72,9 @@ namespace uBasic
         public static int Interpret(this Parser.AstInteger node, Runtime runtime) { return node.Value; }
         public static double Interpret(this Parser.AstFloat node, Runtime runtime) { return node.Value; }
         public static string Interpret(this Parser.AstString node, Runtime runtime) { return node.Value; }
-        public static object? Interpret(this Parser.AstVariable node, Runtime runtime) { return runtime.symbolTable.Get(node.Name); }
+        public static object? Interpret(this Parser.AstVariable node, Runtime runtime) { 
+            return runtime.symbolTable.Get(node.Name); 
+        }
         public static object? Interpret(this Parser.AstConstant node, Runtime runtime)
         {
             if (node.nodeBool != null)
@@ -469,6 +472,10 @@ namespace uBasic
                 return node.stmtInput.Interpret(runtime);
             else if (node.stmtPrint != null)
                 return node.stmtPrint.Interpret(runtime);
+            else if (node.stmtRead != null)
+                return node.stmtRead.Interpret(runtime);
+            else if (node.stmtRestore != null)
+                return node.stmtRestore.Interpret(runtime);
             else if (node.stmtReturn != null)
                 return node.stmtReturn.Interpret(runtime);
             else if (node.stmtComment != null)
@@ -803,7 +810,14 @@ namespace uBasic
                 {
                     if (node.ids.ids.Count == 1)
                     {
-                        SetInputVariable(node.ids.ids[0].Name, inputLine, runtime);
+                        AstNode idNode = node.ids.ids[0];
+                        if (idNode.GetType() == typeof(Parser.AstVariable))
+                            SetInputVariable((idNode as Parser.AstVariable).Name, inputLine, runtime);
+                        else if (idNode.GetType() == typeof(Parser.AstArrayAccess))
+                            SetInputArrayAccess((idNode as Parser.AstArrayAccess), inputLine, runtime);
+                        else
+                            throw new Exception($"Unknown variable type at {idNode.LineNumber}:{idNode.ColumnNumber}");
+
                     }
                     else
                     {
@@ -817,7 +831,13 @@ namespace uBasic
                         {
                             for (int i = 0; i < node.ids.ids.Count; i++)
                             {
-                                SetInputVariable(node.ids.ids[i].Name, parts[i], runtime);
+                                AstNode idNode = node.ids.ids[i];
+                                if (idNode.GetType() == typeof(Parser.AstVariable))
+                                    SetInputVariable((idNode as AstVariable).Name, parts[i], runtime);
+                                else if (idNode.GetType() == typeof(Parser.AstArrayAccess))
+                                    SetInputArrayAccess((idNode as Parser.AstArrayAccess), parts[i], runtime);
+                                else
+                                    throw new Exception($"Unknown variable type at {idNode.LineNumber}:{idNode.ColumnNumber}");
                             }
                         }
                     }
@@ -896,7 +916,103 @@ namespace uBasic
             runtime.symbolTable.Set(ID, value);
         }
 
-        public static object? Interpret(this Parser.AstEnd node, Runtime runtime)
+        private static void SetInputArrayAccess(Parser.AstArrayAccess arrayRef, string value, Runtime runtime)
+        {
+            bool preferString = arrayRef.variable.EndsWith("$");
+            bool preferFloat = arrayRef.variable.EndsWith("#");
+            bool preferInt = arrayRef.variable.EndsWith("%");
+            bool preferBool = false;
+
+            // preference and it parses correctly.
+            object? objValue = null;
+            bool floatSuccess = false;
+            bool intSuccess = false;
+            bool boolSuccess = false;
+            double floatValue = 0.0;
+            int intValue = 0;
+            bool boolValue = false;
+
+            floatSuccess = Double.TryParse(value, out floatValue);
+            if (preferFloat && floatSuccess)
+            {
+                objValue = floatValue;
+            }
+            if (objValue == null)
+            {
+                intSuccess = int.TryParse(value, out intValue);
+                if (preferInt && intSuccess)
+                {
+                    objValue = intValue;
+                }
+            }
+            if (objValue == null)
+            {
+                boolSuccess = Boolean.TryParse(value, out boolValue);
+                if (preferBool && boolSuccess)
+                {
+                    objValue = boolValue;
+                }
+            }
+
+            if (objValue == null)
+            {
+                if (preferString)
+                {
+                    objValue = value.ToString();
+                }
+            }
+
+            // no preference take hardest parsed correctly first
+            if (objValue == null)
+            {
+                if (floatSuccess && !Double.IsInteger(floatValue))
+                {
+                    objValue = floatValue;
+                }
+                else if (intSuccess)
+                {
+                    objValue = intValue;
+                }
+                else if (boolSuccess)
+                {
+                    objValue = boolValue;
+                }
+                else
+                    objValue = value.ToString();
+            }
+            SetArrayRef(arrayRef, objValue, runtime);            
+        }
+
+        private static void SetArrayRef(AstArrayAccess arrayRef, object value, Runtime runtime)
+        {
+            if (arrayRef.exps != null && arrayRef.exps.expList != null)
+            {
+                int[] rank = (from exp in arrayRef.exps.expList
+                              select Convert.ToInt32(exp.Interpret(runtime))).ToArray<int>();
+                if (rank.Length > 4)
+                    throw new Exception($"Too many indexes to array ${arrayRef.variable}");
+                object? arr = runtime.symbolTable.Get(arrayRef.variable);
+                if (arr != null)
+                {
+                    if (rank.Length == 1)
+                        (arr as object?[])[rank[0]] = value;
+                    else if (rank.Length == 2)
+                        (arr as object?[,])[rank[0], rank[1]] = value;
+                    else if (rank.Length == 3)
+                        (arr as object?[,,])[rank[0], rank[1], rank[2]] = value;
+                    else if (rank.Length == 4)
+                        (arr as object?[,,,])[rank[0], rank[1], rank[2], rank[3]] = value;
+                    else
+                        throw new Exception($"Too many indexes to array ${arrayRef.variable}");
+                }
+                else
+                    throw new Exception($"Variable {arrayRef.variable} not found.");
+            }
+            else
+                throw new Exception($"Array access on variable {arrayRef.variable} not passed index(s)");
+        }
+
+public static object? Interpret(this Parser.AstEnd node, Runtime runtime)
         {
             runtime.running = false;
             return OK;
@@ -1007,5 +1123,32 @@ namespace uBasic
         {
             return null;
         }
+
+        public static object? Interpret(this Parser.AstRead node, Runtime runtime)
+        {
+            if (node.ids == null || node.ids.ids == null || node.ids.ids.Count == 0)
+                return "";
+
+            foreach(AstNode idNode in node.ids.ids)
+            {
+                object? value = runtime.DataNext();
+                if (idNode.GetType() == typeof(Parser.AstVariable))
+                {
+                    runtime.symbolTable.Set((idNode as Parser.AstVariable).Name, value);
+                }
+                else if (idNode.GetType() == typeof(Parser.AstArrayAccess))
+                    SetArrayRef((idNode as Parser.AstArrayAccess), value, runtime);
+                else
+                    throw new Exception($"Unknown variable type at {idNode.LineNumber}:{idNode.ColumnNumber}");
+            }
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstRestore node, Runtime runtime)
+        {
+            runtime.DataRestore(node.lineLabel, node.lineNum);
+            return OK;
+        }
+
     }
 }

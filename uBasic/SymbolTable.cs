@@ -63,6 +63,8 @@ namespace uBasic
                 if (frame.TryGetValue(key, out object? value))
                     return value;
             }
+            // frames[frames.Count - 1].Add(name, 0);
+            // return frames[frames.Count - 1][name];
             throw new ArgumentException($"Variable \"{key}\" not found.");
         }
 
