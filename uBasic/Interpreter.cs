@@ -33,9 +33,9 @@ namespace uBasic
                     if (runtime.lineLabels.ContainsValue(i))
                     {
                         string[] labels = (from pair in runtime.lineLabels
-                                 where pair.Value == i
-                                 select pair.Key).ToArray<string>();
-                        foreach(string label in labels)
+                                           where pair.Value == i
+                                           select pair.Key).ToArray<string>();
+                        foreach (string label in labels)
                             if (!label.StartsWith("#") || showInternal)
                                 sb.AppendLine(label + ":");
                     }
@@ -43,8 +43,8 @@ namespace uBasic
                     if (runtime.lineNumbers.ContainsValue(i))
                     {
                         lineNum = string.Join('\n', (from pair in runtime.lineNumbers
-                                   where pair.Value == i
-                                   select $"{pair.Key} "));                        
+                                                     where pair.Value == i
+                                                     select $"{pair.Key} "));
                     }
                     if (stmt.stmtIf != null && stmt.stmtIf.multiLine == false)
                     {
@@ -72,7 +72,8 @@ namespace uBasic
         public static double Interpret(this Parser.AstFloat node, Runtime runtime) { return node.Value; }
         public static string Interpret(this Parser.AstString node, Runtime runtime) { return node.Value; }
         public static object? Interpret(this Parser.AstVariable node, Runtime runtime) { return runtime.symbolTable.Get(node.Name); }
-        public static object? Interpret(this Parser.AstConstant node, Runtime runtime) {
+        public static object? Interpret(this Parser.AstConstant node, Runtime runtime)
+        {
             if (node.nodeBool != null)
                 return node.nodeBool.Interpret(runtime);
             else if (node.nodeInt != null)
@@ -83,9 +84,11 @@ namespace uBasic
                 return node.nodeString.Interpret(runtime);
             return null;
         }
-        public static object? Interpret(this Parser.AstValue node, Runtime runtime) 
+        public static object? Interpret(this Parser.AstValue node, Runtime runtime)
         {
-            if (node.nodeConstant != null)
+            if (node.nodeArrayAccess != null)
+                return node.nodeArrayAccess.Interpret(runtime);
+            else if (node.nodeConstant != null)
                 return node.nodeConstant.Interpret(runtime);
             else if (node.nodeExpression != null)
                 return node.nodeExpression.Interpret(runtime);
@@ -96,7 +99,7 @@ namespace uBasic
 
             return null;
         }
-        
+
         public static object? Interpret(this Parser.AstFunctionCall node, Runtime runtime)
         {
             if (node.function != null)
@@ -127,7 +130,7 @@ namespace uBasic
         }
 
         public static object? Interpret(this Parser.AstNegateExpression node, Runtime runtime)
-        {            
+        {
             object? result = node.powerExpression?.Interpret(runtime);
             if (result == null)
                 return null;
@@ -191,7 +194,7 @@ namespace uBasic
         }
         public static object? Interpret(this Parser.AstAddExpression node, Runtime runtime)
         {
-            if (node.multiplyExpression != null && node.addExpression  == null)
+            if (node.multiplyExpression != null && node.addExpression == null)
             {
                 return node.multiplyExpression.Interpret(runtime);
             }
@@ -243,7 +246,7 @@ namespace uBasic
                 {
                     if (lhs.GetType() == typeof(bool) && rhs.GetType() == typeof(bool))
                     {
-                        switch(node.op.Type)
+                        switch (node.op.Type)
                         {
                             case Token_Type.TOKEN_IS_EQUAL:
                                 return lhs == rhs;
@@ -335,16 +338,16 @@ namespace uBasic
                 return null;
 
             if (node.negate == false)
-                return result;                
+                return result;
             else
                 if (result.GetType() == typeof(bool))
-                    return !(bool)result;
-                else if (result.GetType() == typeof(double))
-                    return (double)result == 0.0;
-                else if (result.GetType() == typeof(int))
-                    return (int)result == 0;
-                else
-                    throw new Exception("Not can only be evaluated with a boolean, or numeric value.");
+                return !(bool)result;
+            else if (result.GetType() == typeof(double))
+                return (double)result == 0.0;
+            else if (result.GetType() == typeof(int))
+                return (int)result == 0;
+            else
+                throw new Exception("Not can only be evaluated with a boolean, or numeric value.");
         }
 
         public static object? Interpret(this Parser.AstAndExpression node, Runtime runtime)
@@ -438,6 +441,10 @@ namespace uBasic
         {
             if (node.stmtLet != null)
                 return node.stmtLet.Interpret(runtime);
+            else if (node.stmtData != null)
+                return node.stmtData.Interpret(runtime);
+            else if (node.stmtDim != null)
+                return node.stmtDim.Interpret(runtime);
             else if (node.stmtEnd != null)
                 return node.stmtEnd.Interpret(runtime);
             else if (node.stmtFor != null)
@@ -474,10 +481,39 @@ namespace uBasic
         {
             if (node.expression == null)
                 throw new ArgumentException("Let statement doesn't have a value to assign.");
-            if (node.variable == null)
+            if (node.variable == null && node.arrayRef == null)
                 throw new ArgumentException("Let statement doesn't have a variable to assign to.");
             object? value = node.expression.Interpret(runtime);
-            runtime.symbolTable.Set(node.variable.Name, value);            
+            if (node.variable != null)
+                runtime.symbolTable.Set(node.variable.Name, value);
+            else if (node.arrayRef != null)
+            {
+                if (node.arrayRef.exps != null && node.arrayRef.exps.expList != null)
+                {
+                    int[] rank = (from exp in node.arrayRef.exps.expList
+                                  select Convert.ToInt32(exp.Interpret(runtime))).ToArray<int>();
+                    if (rank.Length > 4)
+                        throw new Exception($"Too many indexes to array ${node.variable}");
+                    object? arr = runtime.symbolTable.Get(node.arrayRef.variable);
+                    if (arr != null)
+                    {
+                        if (rank.Length == 1)
+                            (arr as object?[])[rank[0]] = value;
+                        else if (rank.Length == 2)
+                            (arr as object?[,])[rank[0], rank[1]] = value;
+                        else if (rank.Length == 3)
+                            (arr as object?[,,])[rank[0], rank[1], rank[2]] = value;
+                        else if (rank.Length == 4)
+                            (arr as object?[,,,])[rank[0], rank[1], rank[2], rank[3]] = value;
+                        else
+                            throw new Exception($"Too many indexes to array ${node.variable}");
+                    }
+                    else
+                        throw new Exception($"Variable {node.arrayRef.variable} not found.");
+                }
+                else
+                    throw new Exception($"Array access on variable {node.arrayRef.variable} not passed index(s)");
+            }
             return value;
         }
 
@@ -492,7 +528,7 @@ namespace uBasic
             if (node.statements != null)
             {
                 object? result = null;
-                for (int i = 0; i < node.statements.Count; i++) 
+                for (int i = 0; i < node.statements.Count; i++)
                 {
                     AstStatement stmt = node.statements[i];
                     result = stmt.Interpret(runtime);
@@ -517,7 +553,7 @@ namespace uBasic
             if (node.lines != null)
             {
                 object? result = null;
-                foreach(AstLine line in node.lines)
+                foreach (AstLine line in node.lines)
                 {
                     result = line.Interpret(runtime);
                 }
@@ -676,7 +712,7 @@ namespace uBasic
                 // label should be ok now.
                 runtime.instructionPointer = runtime.lineLabels[nextLabel];
             }
-                        
+
             return result;
         }
 
@@ -723,7 +759,7 @@ namespace uBasic
                     Console.WriteLine("");
                 else
                     Console.Write("");
-            } 
+            }
             else
             {
                 foreach (AstExpression exp in node.exps.exps)
@@ -742,7 +778,7 @@ namespace uBasic
             else
             {
                 StringBuilder sb = new();
-                foreach(Parser.AstExpression exp in node.exps)
+                foreach (Parser.AstExpression exp in node.exps)
                 {
                     sb.Append(exp.Interpret(runtime));
                 }
@@ -754,8 +790,8 @@ namespace uBasic
         {
             if (node.ids == null || node.ids.ids == null || node.ids.ids.Count == 0)
                 return "";
-            
-            string? inputLine = null;            
+
+            string? inputLine = null;
 
             while (inputLine == null)
             {
@@ -900,9 +936,76 @@ namespace uBasic
         public static object? Interpret(this Parser.AstReturn node, Runtime runtime)
         {
             if (runtime.callStack.Count == 0)
-                return new Exception("Call stack is empty");
+                throw new Exception("Call stack is empty");
             runtime.instructionPointer = runtime.callStack.Pop() + 1;
             return OK;
+        }
+
+        public static object? Interpret(this Parser.AstArrayAccess node, Runtime runtime)
+        {
+            if (!runtime.symbolTable.Contains(node.variable))
+                throw new Exception($"Variable \"{node.variable}\" not found.");
+            object? arr = runtime.symbolTable.Get(node.variable);
+            if (arr != null && node.exps != null && node.exps.expList != null)
+            {
+                int rank = node.exps.expList.Count;
+                if (rank > 4)
+                    throw new Exception($"Too many indexes to array ${node.variable}");
+
+                int[] expResult = (from exp in node.exps.expList
+                                   select Convert.ToInt32(exp.Interpret(runtime))).ToArray<int>();
+                if (rank == 1)
+                    return (arr as object?[])[expResult[0]];
+                else if (rank == 2)
+                    return (arr as object?[,])[expResult[0], expResult[1]];
+                else if (rank == 3)
+                    return (arr as object?[,,])[expResult[0], expResult[1], expResult[2]];
+                else if (rank == 4)
+                    return (arr as object?[,,,])[expResult[0], expResult[1], expResult[2], expResult[3]];
+                else
+                    throw new Exception($"Too many indexes to array ${node.variable}");
+            }
+            return null;
+        }
+
+        public static object? Interpret(this Parser.AstDim node, Runtime runtime)
+        {
+            if (node.name == null)
+                return null;
+
+            //if (runtime.symbolTable.Contains(node.name))
+            //  throw new Exception($"Variable \"{node.name}\" has already been declared.");
+
+            if (node.rank != null && node.rank.expList != null)
+            {
+                int rank = node.rank.expList.Count;
+                if (rank > 4)
+                    throw new Exception($"Too many indexes to array \"{node.name}\"");
+
+                int[] expResult = (from exp in node.rank.expList
+                                   select Convert.ToInt32(exp.Interpret(runtime))).ToArray<int>();
+
+                if (rank == 1)
+                    runtime.symbolTable.Set(node.name, new object?[expResult[0]]);
+                else if (rank == 2)
+                    runtime.symbolTable.Set(node.name, new object?[expResult[0], expResult[1]]);
+                else if (rank == 3)
+                    runtime.symbolTable.Set(node.name, new object?[expResult[0], expResult[1], expResult[2]]);
+                else if (rank == 4)
+                    runtime.symbolTable.Set(node.name, new object?[expResult[0], expResult[1], expResult[2], expResult[3]]);
+                else
+                    throw new Exception($"Too many indexes to array\"${node.name}\"");
+            }
+            else
+            {
+                throw new Exception($"Missing array indexes for variable \"{node.name}\"");
+            }
+            return null;
+        }
+
+        public static object? Interpret(this Parser.AstData node, Runtime runtime)
+        {
+            return null;
         }
     }
 }

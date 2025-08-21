@@ -67,6 +67,13 @@ namespace uBasic
             }
             else if (t.Type == Token_Type.TOKEN_IDENTIFIER)
             {
+                Tuple<int, Parser.AstArrayAccess?> arrayAccess = ParseArrayAccess(tokens, i, runtime);
+                if (arrayAccess.Item2 != null)
+                {
+                    val.Set(arrayAccess.Item2);
+                    return new Tuple<int, Parser.AstValue?>(arrayAccess.Item1, val);
+                }
+
                 Tuple<int, Parser.AstFunctionCall?> functionCall = ParseFunctionCall(tokens, Index, runtime);
                 if (functionCall.Item2 != null)
                 {
@@ -602,6 +609,25 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(comment.Item1, statement);
             }
 
+            Tuple<int, Parser.AstData?> dataStatement = ParseDataStatement(tokens, Index, runtime);
+            if (dataStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(dataStatement.Item2);
+                runtime.program.Add(statement);
+                runtime.dataSegment.Add(dataStatement.Item2);
+                return new Tuple<int, Parser.AstStatement?>(dataStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstDim?> dimStatement = ParseDimStatement(tokens, Index, runtime);
+            if (dimStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(dimStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(dimStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstEnd?> endStatement = ParseEnd(tokens, Index, runtime);
             if (endStatement.Item2 != null)
             {
@@ -1112,8 +1138,8 @@ namespace uBasic
             // LET Id '=' <Expression>
 
             int i = Index;
-            Parser.AstVariable? variable = null;
-            Parser.AstExpression? expression = null;
+            Parser.AstLet ret = new(tokens[i]);
+            Tuple<int, Parser.AstLet?> failure = new(i, null);
 
             // optional keyword LET
             if (tokens[i].Type == Token_Type.TOKEN_LET)
@@ -1121,17 +1147,26 @@ namespace uBasic
                 // Consume the let.
                 i++;
             }
-
-            // Variable
+            
+            // Array Ref or Variable
             if (i < tokens.Count && tokens[i].Type == Token_Type.TOKEN_IDENTIFIER)
             {
                 // Consume the variable;
-                variable = new Parser.AstVariable(tokens[i]);
-                i++;
+                Tuple<int, Parser.AstArrayAccess?> arrayRef = ParseArrayAccess(tokens, i, runtime);
+                if (arrayRef.Item2 != null)
+                {
+                    ret.arrayRef = arrayRef.Item2;
+                    i = arrayRef.Item1;
+                }
+                else
+                {
+                    ret.variable = new Parser.AstVariable(tokens[i]);
+                    i++;
+                }
             }
             else
             {
-                return new Tuple<int, Parser.AstLet?>(Index, null);
+                return failure; ;
             }
 
             // Equals
@@ -1142,25 +1177,22 @@ namespace uBasic
             }
             else
             {
-                return new Tuple<int, Parser.AstLet?>(Index, null);
+                return failure;
             }
 
             // Expression.
             Tuple<int, Parser.AstExpression?> result = ParseExpression(tokens, i, runtime);
             if (result.Item2 != null)
             {
-                expression = result.Item2;
+                ret.expression= result.Item2;
                 i = result.Item1;
             }
             else
             {
-                return new Tuple<int, Parser.AstLet?>(Index, null);
+                return failure;
             }
 
-            Parser.AstLet statement = new Parser.AstLet(tokens[Index]);
-            statement.Set(variable, expression);
-
-            return new Tuple<int, Parser.AstLet?>(i, statement);
+            return new Tuple<int, Parser.AstLet?>(i, ret);
         }
 
         public static Tuple<int, Parser.AstStatements?> ParseStatements(List<Token> tokens, int Index, Runtime runtime)
@@ -1221,7 +1253,7 @@ namespace uBasic
                 string fileName = tokens[i + 1].Text;
                 if (fileName.Length >= 2)
                     fileName = fileName.Substring(1, fileName.Length - 2);
-                Tuple<int, Parser.AstLine?> ret =  new Tuple<int, Parser.AstLine?>(i + 2, null);
+                Tuple<int, Parser.AstLine?> ret = new Tuple<int, Parser.AstLine?>(i + 2, null);
                 if (!File.Exists(fileName))
                 {
                     Console.WriteLine("File not found.");
@@ -1270,9 +1302,9 @@ namespace uBasic
                     }
                     else if (index < tokens.Count)
                     {
-                        Console.WriteLine($"Unrecognized token/syntax error at Line: {programTokens[index].LineNumber}, Column: {programTokens[index].ColumnNumber} :: {programTokens[index].Text}");                        
+                        Console.WriteLine($"Unrecognized token/syntax error at Line: {programTokens[index].LineNumber}, Column: {programTokens[index].ColumnNumber} :: {programTokens[index].Text}");
                     }
-                    
+
                 }
                 // Get any stragglers
                 while (Basic.labels.Count > 0)
@@ -1394,7 +1426,7 @@ namespace uBasic
             //
             //              |
             int i = Index;
-            
+
             Parser.AstPrintList ret = new Parser.AstPrintList(tokens[i]);
 
             Tuple<int, Parser.AstExpression?> exp = ParseExpression(tokens, i, runtime);
@@ -1407,12 +1439,12 @@ namespace uBasic
                 // next is semicolon.
                 success = false;
                 if (i < tokens.Count && tokens[i].Type == Token_Type.TOKEN_SEMICOLON && tokens.Count > i + 1)
-                {                    
+                {
                     exp = ParseExpression(tokens, i + 1, runtime);
                     success = exp.Item2 != null;
                 }
             }
-            
+
             return new Tuple<int, Parser.AstPrintList?>(i, ret);
         }
 
@@ -1471,7 +1503,7 @@ namespace uBasic
                 return failure;
             i = ids.Item1;
             ret.Set(prompt, ids.Item2);
-            return new Tuple<int ,  Parser.AstInput?>(i, ret);
+            return new Tuple<int, Parser.AstInput?>(i, ret);
         }
 
         public static Tuple<int, Parser.AstEnd?> ParseEnd(List<Token> tokens, int Index, Runtime runtime)
@@ -1511,9 +1543,9 @@ namespace uBasic
 
         public static Tuple<int, Parser.AstFunctionCall?> ParseFunctionCall(List<Token> tokens, int Index, Runtime runtime)
         {
-            string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP"};
+            string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP" };
             int i = Index;
-            Tuple<int, Parser.AstFunctionCall?> failure = new(Index, null);            
+            Tuple<int, Parser.AstFunctionCall?> failure = new(Index, null);
             if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
             {
                 return failure;
@@ -1550,11 +1582,145 @@ namespace uBasic
                     }
                     else // Token Type = Comma
                         i++;
-                }                
+                }
                 ret.Set(args);
                 return new Tuple<int, Parser.AstFunctionCall?>(i, ret);
             }
             return failure;
+        }
+
+        public static Tuple<int, Parser.AstArrayAccess?> ParseArrayAccess(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstArrayAccess?> failure = new(i, null);
+            if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+            {
+                return failure;
+            }
+            Parser.AstArrayAccess ret = new(tokens[i]);
+            ret.variable = tokens[i].Text;
+            i++;
+
+            if (tokens[i].Type != Token_Type.TOKEN_LBRACKET)
+            {
+                return failure;
+            }
+            i++;
+
+            bool done = false;
+            while (!done)
+            {
+                Tuple<int, Parser.AstExpression?> exp = ParseExpression(tokens, i, runtime);
+                if (exp.Item2 != null)
+                {
+                    ret.Add(exp.Item2);
+                    i = exp.Item1;
+                    if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                        done = true;
+                    else
+                        i++;
+                }
+                else
+                {
+                    done = true;
+                }
+            }
+
+            if (tokens[i].Type != Token_Type.TOKEN_RBRACKET)
+            {
+                return failure;
+            }
+            i++;
+
+            if (ret.exps != null && ret.exps.expList != null && ret.exps.expList.Count > 4)
+            {
+                throw new Exception($"Too many array indexes for {ret.variable}.");
+            }
+            return new Tuple<int, Parser.AstArrayAccess?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstData?> ParseDataStatement(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstData?> failure = new(i, null);
+
+            if (tokens[i].Type != Token_Type.TOKEN_DATA)
+                return failure;
+            i++;
+
+            Parser.AstData ret = new(tokens[Index]);
+            bool done = false;
+            while (!done)
+            {
+                Tuple<int, Parser.AstConstant?> valueExp = ParseConstant(tokens, i, runtime);
+                if (valueExp.Item2 == null)
+                {
+                    done = true;
+                    break;
+                }
+                ret.Add(valueExp.Item2);
+                i = valueExp.Item1;
+
+                if (i >= tokens.Count || tokens[i].Type != Token_Type.TOKEN_COMMA)
+                {
+                    done = true;
+                    break;
+                }
+                i++;
+            }
+            return new Tuple<int, Parser.AstData?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstDim?> ParseDimStatement(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstDim?> failure = new(i, null);
+
+            if (tokens[i].Type != Token_Type.TOKEN_DIM)
+                return failure;
+            i++;
+
+            if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+                return failure;
+
+            Parser.AstDim ret = new(tokens[Index]);
+            ret.Set(tokens[i].Text);
+            i++;
+
+            if (tokens[i].Type != Token_Type.TOKEN_LBRACKET)
+                return failure;
+            i++;
+
+            bool done = false;
+            while (!done)
+            {
+                Tuple<int, Parser.AstExpression?> exp = ParseExpression(tokens, i, runtime);
+                if (exp.Item2 != null)
+                {
+                    ret.Add(exp.Item2);
+                    i = exp.Item1;
+
+                    if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                    {
+                        done = true;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+                else
+                {
+                    done = true;
+                }
+            }
+
+            if (tokens[i].Type != Token_Type.TOKEN_RBRACKET)
+                return failure;
+            else
+                i++;
+
+            return new Tuple<int, Parser.AstDim?>(i, ret);
         }
     }
 }

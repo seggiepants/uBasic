@@ -116,30 +116,42 @@ namespace uBasic
              LET Id '=' <Expression> 
              */
             public AstVariable? variable;
+            public AstArrayAccess? arrayRef;
             public AstExpression? expression;
             public AstLet(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
+                arrayRef = null;
                 variable = null;
                 expression = null;
             }
 
             public AstNode? Get()
             {
-                if (variable != null && expression != null)
+                if ((arrayRef != null || variable != null) && expression != null)
                     return this;
                 return null;
             }
 
             public void Set(AstVariable? name, AstExpression? value)
             {
+                arrayRef = null;
                 variable = name;
+                expression = value;
+            }
+
+            public void Set(AstArrayAccess? name, AstExpression? value)
+            {
+                arrayRef = name;
+                variable = null;
                 expression = value;
             }
 
             public override string ToString()
             {
-                if (variable != null & expression != null)
+                if (variable != null && expression != null)
                     return $"LET {variable} = {expression}";
+                else if (arrayRef != null && expression != null)
+                    return $"LET {arrayRef} = {expression}";
                 return "null";
             }
         }
@@ -295,17 +307,27 @@ namespace uBasic
             public AstConstant? nodeConstant;
             public AstExpression? nodeExpression;
             public AstFunctionCall? nodeFunctionCall;
+            public AstArrayAccess? nodeArrayAccess;
 
             public AstValue(Token t) : base(t.LineNumber, t.ColumnNumber) 
             {
-                nodeVariable = null;
+                nodeArrayAccess = null;
                 nodeConstant = null;
                 nodeExpression = null;
                 nodeFunctionCall = null;
+                nodeVariable = null;
             }
-
+            public void Set(AstArrayAccess node)
+            {
+                nodeArrayAccess = node;
+                nodeConstant = null;
+                nodeExpression = null;
+                nodeFunctionCall = null;
+                nodeVariable = null;
+            }
             public void Set(AstExpression node)
             {
+                nodeArrayAccess = null;
                 nodeConstant = null;
                 nodeExpression = node;
                 nodeFunctionCall = null;
@@ -313,6 +335,7 @@ namespace uBasic
             }
             public void Set(AstFunctionCall node)
             {
+                nodeArrayAccess = null;
                 nodeConstant = null;
                 nodeExpression = null;
                 nodeFunctionCall = node;
@@ -321,6 +344,7 @@ namespace uBasic
 
             public void Set(AstVariable node)
             {
+                nodeArrayAccess = null;
                 nodeConstant = null;
                 nodeExpression = null;
                 nodeFunctionCall = null;
@@ -329,6 +353,7 @@ namespace uBasic
 
             public void Set(AstConstant node)
             {
+                nodeArrayAccess = null;
                 nodeConstant = node;
                 nodeExpression = null;
                 nodeVariable = null;
@@ -336,7 +361,7 @@ namespace uBasic
 
             public AstNode? Get()
             {
-                return nodeConstant ?? nodeExpression ?? nodeFunctionCall ?? (AstNode?) nodeVariable ?? null;
+                return nodeArrayAccess ?? nodeConstant ?? nodeExpression ?? nodeFunctionCall ?? (AstNode?) nodeVariable ?? null;
             }
 
             public override string ToString()
@@ -784,6 +809,8 @@ namespace uBasic
         public class AstStatement : AstNode
         {
             public AstComment? stmtComment;
+            public AstData? stmtData;
+            public AstDim? stmtDim;
             public AstEnd? stmtEnd;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
@@ -803,6 +830,9 @@ namespace uBasic
             public AstStatement(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 stmtComment = null;
+                stmtData = null;
+                stmtData = null;
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -822,6 +852,8 @@ namespace uBasic
             public void Set(AstComment? stmt)
             {
                 stmtComment = stmt;
+                stmtData = null;
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -837,10 +869,52 @@ namespace uBasic
                 stmtPrint = null;
                 stmtReturn = null;
             }
-
+            public void Set(AstData? stmt)
+            {
+                stmtComment = null;
+                stmtData = stmt;
+                stmtDim = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtReturn = null;
+            }
+            public void Set(AstDim? stmt)
+            {
+                stmtComment = null;
+                stmtData = null;
+                stmtDim = stmt;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtReturn = null;
+            }
+            
             public void Set(AstEnd? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = stmt;
                 stmtFor = null;
                 stmtForNext = null;
@@ -860,6 +934,8 @@ namespace uBasic
             public void Set(AstFor? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = stmt;
                 stmtForNext = null;
@@ -879,6 +955,8 @@ namespace uBasic
             public void Set(AstForNext? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = stmt;
@@ -898,6 +976,8 @@ namespace uBasic
             public void Set(AstFunctionCall? stmt)
             {
                 stmtComment = null;
+                stmtData = null;
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -917,6 +997,8 @@ namespace uBasic
             public void Set(AstGosub? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -936,6 +1018,8 @@ namespace uBasic
             public void Set(AstGoto? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -955,6 +1039,8 @@ namespace uBasic
             public void Set(AstIf? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -974,6 +1060,8 @@ namespace uBasic
             public void Set(AstIfElseIf? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -993,6 +1081,8 @@ namespace uBasic
             public void Set(AstIfElse? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1012,6 +1102,8 @@ namespace uBasic
             public void Set(AstIfEndIf? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1031,6 +1123,8 @@ namespace uBasic
             public void Set(AstInput? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1050,6 +1144,8 @@ namespace uBasic
             public void Set(AstLet? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1069,6 +1165,8 @@ namespace uBasic
             public void Set(AstPrint? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1089,6 +1187,8 @@ namespace uBasic
             public void Set(AstReturn? stmt)
             {
                 stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
                 stmtEnd = null;
                 stmtFor = null;
                 stmtForNext = null;
@@ -1109,6 +1209,14 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return stmtComment;
+
+                if (stmtData != null)
+                {
+                    return stmtData; 
+                }
+
+                if (stmtDim != null)
+                    return stmtDim;
 
                 if (stmtEnd != null)
                     return stmtEnd;
@@ -1159,6 +1267,10 @@ namespace uBasic
             {
                 if (stmtComment != null)
                     return $"{stmtComment}";
+                else if (stmtData != null)
+                    return $"{stmtData}";
+                else if (stmtDim != null)
+                    return $"{stmtDim}";
                 else if (stmtEnd != null)
                     return $"{stmtEnd}";
                 else if (stmtFor != null)
@@ -1188,7 +1300,7 @@ namespace uBasic
                 else if (stmtReturn != null)
                     return $"{stmtReturn}";
 
-                    return "";
+                return "";
             }
         }
 
@@ -1748,7 +1860,111 @@ namespace uBasic
             public override string ToString()
             {
                 return "RETURN";
+            }     
+        }
+
+        public class AstArrayAccess : AstNode
+        {
+            public string variable;
+            public AstExpressionList? exps;
+            Token saved;
+            public AstArrayAccess(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                saved = t;
+                variable = "";
+                exps = null;
             }
+
+            public void Set(string variableName, AstExpressionList? exps)
+            {
+                variable = variableName;
+                this.exps = exps;
+                if (this.exps != null && this.exps.expList != null && this.exps.expList.Count > 4)
+                    throw new Exception($"Too many indexes passed to ${variable}");
+            }
+
+            public void Set(string variableName)
+            {
+                variable = variableName;
+            }
+
+            public void Add(AstExpression? exp)
+            {
+                if (exps == null)
+                    exps = new AstExpressionList(saved);
+                if (exp != null)
+                    this.exps.Add(exp);
+                if (this.exps != null && this.exps.expList != null && this.exps.expList.Count > 4)
+                    throw new Exception($"Too many indexes passed to ${variable}");
+            }
+
+            public override string ToString()
+            {
+                string expList = "";
+                if (exps != null && exps.expList != null)
+                    expList = $"[{exps}]";
+                return $"{variable}{expList}";
+            }
+        }
+
+        public class AstDim : AstNode
+        {
+            public string? name;
+            public AstExpressionList? rank;
+            Token saved;
+
+            public AstDim(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                saved = t;
+                name = null;
+                rank = null;
+            }
+
+            public void Set(string name)
+            {
+                this.name = name;
+            }
+
+            public void Add(AstExpression exp)
+            {
+                if (rank == null)
+                    rank = new AstExpressionList(saved);
+                rank.Add(exp);
+                if (rank.expList != null && rank.expList.Count > 4)
+                    throw new Exception($"Too many array indexes for {name}.");
+            }
+
+            public override string ToString()
+            {
+                return $"DIM {name}[{rank}]";
+            }
+        }
+
+        public class AstData : AstNode
+        {
+            public List<AstConstant>? values;
+
+            public AstData(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                values = null;
+            }
+
+            public void Add(AstConstant constant)
+            {
+                if (values == null)
+                    values = new List<AstConstant>();
+                values.Add(constant);
+            }
+
+            public override string ToString()
+            {
+                if (values == null)
+                    return "DATA";
+
+                string valueString = String.Join(", ", values.Select(value => $"{value}"));
+                return $"DATA {valueString}";
+            }
+
         }
 
     }

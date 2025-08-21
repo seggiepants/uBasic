@@ -20,6 +20,8 @@ namespace uBasic
         public Stack<int> forStack;
         public Stack<int> ifStack;
         public Stack<int> callStack;
+        public List<Parser.AstData> dataSegment;
+        int dataIndex, dataPtr;
 
         public Runtime()
         {
@@ -35,6 +37,9 @@ namespace uBasic
             forStack = new Stack<int>();
             ifStack = new Stack<int>();
             callStack = new Stack<int>();
+            dataSegment = new();
+            dataIndex = 0;
+            dataPtr = 0;
         }
 
         public void Clear()
@@ -51,11 +56,35 @@ namespace uBasic
             forStack.Clear();
             ifStack.Clear();
             callStack.Clear();
+            dataIndex = 0;
+            dataPtr = 0;
         }
 
         public int NextCounter()
         {
             return counter++;
+        }
+
+        public void DataRestore()
+        {
+            dataIndex = 0;
+            dataPtr = 0;
+        }
+
+        public Object? DataNext()
+        {
+            object? ret = null;
+            if (dataSegment.Count > 0 && dataIndex < dataSegment.Count && dataSegment[dataIndex] != null && dataSegment[dataIndex].values != null)
+            {
+                ret = dataSegment[dataIndex].values[dataPtr].Get();
+                dataPtr++;
+                if (dataSegment[dataIndex] != null && dataSegment[dataIndex].values != null && dataPtr >= dataSegment[dataIndex].values.Count)
+                {
+                    dataIndex++;
+                    dataPtr = 0;
+                }                
+            }
+            return ret;
         }
 
         public object? Run()
