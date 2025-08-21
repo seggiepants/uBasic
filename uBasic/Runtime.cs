@@ -65,10 +65,40 @@ namespace uBasic
             return counter++;
         }
 
-        public void DataRestore()
+        public void DataRestore(string? label, int? line)
         {
             dataIndex = 0;
             dataPtr = 0;
+            int index = -1;
+            if (line != null && lineNumbers.ContainsKey((int)line))
+            {
+                index = lineNumbers[(int)line];
+            }
+            else if (label != null && lineLabels.ContainsKey((string)label))
+            {
+                index = lineLabels[(string)label];
+            }
+            if (index != -1)
+            {
+                bool found = false;
+                while (!found && index < program.Count)
+                {
+                    if (program[index].stmtData != null)
+                    {
+                        for (int i = 0; i < dataSegment.Count; i++)
+                        {
+                            if (dataSegment[i] == program[index].stmtData)
+                            {
+                                found = true;
+                                dataPtr = 0;
+                                dataIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    index++;
+                }
+            }            
         }
 
         public Object? DataNext()
@@ -84,6 +114,14 @@ namespace uBasic
                     dataPtr = 0;
                 }                
             }
+            if (ret.GetType() == typeof(Parser.AstString))
+                return (ret as Parser.AstString).Value;
+            else if (ret.GetType() == typeof(Parser.AstBoolean))
+                return (ret as Parser.AstBoolean).Value;
+            else if (ret.GetType() == typeof(Parser.AstInteger))
+                return (ret as Parser.AstInteger).Value;
+            else if (ret.GetType() == typeof(Parser.AstFloat))
+                return (ret as Parser.AstFloat).Value;
             return ret;
         }
 

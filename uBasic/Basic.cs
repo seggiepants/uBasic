@@ -761,6 +761,24 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(printStmt.Item1, statement);
             }
 
+            Tuple<int, Parser.AstRead?> readStmt = ParseRead(tokens, Index, runtime);
+            if (readStmt.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(readStmt.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(readStmt.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstRestore?> restoreStmt = ParseRestore(tokens, Index, runtime);
+            if (restoreStmt.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(restoreStmt.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(restoreStmt.Item1, statement);
+            }
+
             Tuple<int, Parser.AstReturn?> returnStmt = ParseReturn(tokens, Index, runtime);
             if (returnStmt.Item2 != null)
             {
@@ -1451,22 +1469,38 @@ namespace uBasic
         public static Tuple<int, Parser.AstIDList?> ParseIDList(List<Token> tokens, int Index, Runtime runtime)
         {
             /*
-             <ID List>  ::= ID ',' <ID List> 
+             <ID List>  ::= ID ',' <ID List>
+             |ArrayRef ',' <ID List> 
              | ID
+             | ArrayRef
              */
             int i = Index;
             Tuple<int, Parser.AstIDList?> failure = new Tuple<int, Parser.AstIDList?>(Index, null);
             Parser.AstIDList ret = new(tokens[i]);
-
+            Tuple<int, Parser.AstArrayAccess?> arrayAccess = new(i, null);
             Tuple<int, Parser.AstValue?> variable = ParseValue(tokens, i, runtime);
-            while (variable.Item2 != null && variable.Item2.nodeVariable != null)
+            if (variable.Item2 == null || variable.Item2.nodeVariable == null)
+                arrayAccess = ParseArrayAccess(tokens, i, runtime);
+            while ((variable.Item2 != null && variable.Item2.nodeVariable != null) || arrayAccess.Item2 != null)
             {
-                i = variable.Item1;
-                ret.Add(variable.Item2.nodeVariable);
+                if (variable.Item2 != null && variable.Item2.nodeVariable != null)
+                {
+                    i = variable.Item1;
+                    ret.Add(variable.Item2.nodeVariable);
+                }
+                else if (arrayAccess.Item2 != null)
+                {
+                    i = arrayAccess.Item1;
+                    ret.Add(arrayAccess.Item2);
+                }
 
                 if (tokens.Count > i && tokens[i].Type == Token_Type.TOKEN_COMMA)
                 {
                     variable = ParseValue(tokens, i + 1, runtime);
+                    if (variable.Item2 == null || variable.Item2.nodeVariable == null)
+                    {
+                        arrayAccess = ParseArrayAccess(tokens, i + 1, runtime);
+                    }
                 }
                 else
                 {
@@ -1721,6 +1755,53 @@ namespace uBasic
                 i++;
 
             return new Tuple<int, Parser.AstDim?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstRead?> ParseRead(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstRead?> failure = new(Index, null);
+            if (tokens[i].Type != Token_Type.TOKEN_READ)
+            {
+                return failure;
+            }
+            Parser.AstRead ret = new Parser.AstRead(tokens[i]);
+            i++;
+
+
+            Tuple<int, Parser.AstIDList?> ids = ParseIDList(tokens, i, runtime);
+            if (ids.Item2 == null)
+                return failure;
+            i = ids.Item1;
+            ret.Set(ids.Item2);
+            return new Tuple<int, Parser.AstRead?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstRestore?> ParseRestore(List<Token> tokens, int Index, Runtime runtime)
+        {
+            int i = Index;
+            Tuple<int, Parser.AstRestore?> failure = new(Index, null);
+            if (tokens[i].Type != Token_Type.TOKEN_RESTORE)
+            {
+                return failure;
+            }
+            Parser.AstRestore ret = new Parser.AstRestore(tokens[i]);
+            i++;
+
+            if (tokens[i].Type == Token_Type.TOKEN_IDENTIFIER)
+            {
+                ret.set(tokens[i].Text);
+                i++;
+            }
+            else if (tokens[i].Type == Token_Type.TOKEN_INTEGER)
+            {
+                if (int.TryParse(tokens[i].Text, out int tokenLine))
+                {
+                    ret.set(tokenLine);
+                    i++;
+                }
+            }                
+            return new Tuple<int, Parser.AstRestore?>(i, ret);
         }
     }
 }

@@ -824,6 +824,8 @@ namespace uBasic
             public AstInput? stmtInput;
             public AstLet? stmtLet;
             public AstPrint? stmtPrint;
+            public AstRead? stmtRead;
+            public AstRestore? stmtRestore;
             public AstReturn? stmtReturn;
 
 
@@ -846,6 +848,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -867,6 +871,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
             public void Set(AstData? stmt)
@@ -887,6 +893,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
             public void Set(AstDim? stmt)
@@ -907,6 +915,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
             
@@ -928,6 +938,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -949,6 +961,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -970,6 +984,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -991,6 +1007,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1012,6 +1030,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1033,6 +1053,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1054,6 +1076,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1075,6 +1099,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1096,6 +1122,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1117,6 +1145,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1138,6 +1168,8 @@ namespace uBasic
                 stmtInput = stmt;
                 stmtLet = null;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1159,6 +1191,8 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = stmt;
                 stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
@@ -1180,11 +1214,13 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = stmt;
+                stmtRead = null;
+                stmtRestore = null;
                 stmtReturn = null;
             }
 
 
-            public void Set(AstReturn? stmt)
+            public void Set(AstRead? stmt)
             {
                 stmtComment = null;
                 stmtData = null; 
@@ -1202,9 +1238,55 @@ namespace uBasic
                 stmtInput = null;
                 stmtLet = null;
                 stmtPrint = null;
-                stmtReturn = stmt;
+                stmtRead = stmt;
+                stmtRestore = null;
+                stmtReturn = null;
             }
 
+            public void Set(AstRestore? stmt)
+            {
+                stmtComment = null;
+                stmtData = null;
+                stmtDim = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = stmt;
+                stmtReturn = null;
+            }
+            public void Set(AstReturn? stmt)
+            {
+                stmtComment = null;
+                stmtData = null;
+                stmtDim = null;
+                stmtEnd = null;
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
+                stmtReturn = stmt;
+            }
             public AstNode? Get()
             {
                 if (stmtComment != null)
@@ -1257,6 +1339,12 @@ namespace uBasic
                 if (stmtPrint != null)
                     return stmtPrint;
 
+                if (stmtRead != null)
+                    return stmtRead;
+
+                if (stmtRestore != null)
+                    return stmtRestore;
+
                 if (stmtReturn != null)
                     return stmtReturn;
 
@@ -1297,6 +1385,10 @@ namespace uBasic
                     return $"{stmtLet}";
                 else if (stmtPrint != null)
                     return $"{stmtPrint}";
+                else if (stmtRead != null)
+                    return $"{stmtRead}";
+                else if (stmtRestore != null)
+                    return $"{stmtRestore}";
                 else if (stmtReturn != null)
                     return $"{stmtReturn}";
 
@@ -1731,13 +1823,13 @@ namespace uBasic
 
         public class AstIDList : AstNode
         {
-            public List<AstVariable>? ids;
+            public List<AstNode>? ids;
             public AstIDList(Token t) : base(t.LineNumber, t.ColumnNumber)
             {
                 ids = null;
             }
 
-            public void Set(List<AstVariable>? ids)
+            public void Set(List<AstNode>? ids)
             {
                 this.ids = ids;
             }
@@ -1745,7 +1837,14 @@ namespace uBasic
             public void Add(AstVariable id)
             {
                 if (ids == null)
-                    ids = new List<AstVariable>();
+                    ids = new List<AstNode>();
+                ids.Add(id);
+            }
+
+            public void Add(AstArrayAccess id)
+            {
+                if (ids == null)
+                    ids = new List<AstNode>();
                 ids.Add(id);
             }
 
@@ -1967,5 +2066,71 @@ namespace uBasic
 
         }
 
+        public class AstRestore : AstNode
+        {
+            public string? lineLabel;
+            public int? lineNum;
+
+            public AstRestore(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                lineLabel = null;
+                lineNum = null;
+            }
+
+            public void set(int line)
+            {
+                lineLabel = null;
+                lineNum = line;
+            }
+
+            public void set(string line)
+            {
+                lineLabel = line;
+                lineNum = null;
+            }
+
+            public override string ToString()
+            {
+                if (lineLabel != null)
+                    return $"RESTORE {lineLabel}";
+                else if (lineNum != null)
+                    return $"RESTORE {lineNum}";
+                return "RESTORE";
+            }
+        }
+
+        public class AstRead : AstNode
+        {
+            public AstIDList? ids;
+            Token saved;
+            public AstRead(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                ids = null;
+                saved = t;
+            }
+
+            public void Set(AstIDList? ids)
+            {
+                this.ids = ids;
+            }
+            public void Add(AstVariable id)
+            {
+                if (ids == null)
+                    ids = new AstIDList(saved);
+                ids.Add(id);
+            }
+
+            public void Add(AstArrayAccess id)
+            {
+                if (ids == null)
+                    ids = new AstIDList(saved);
+                ids.Add(id);
+            }
+            public override string ToString()
+            {
+                string idList = ids != null && ids.ids != null && ids.ids.Count > 0 ? $" {ids}" : "";
+                return $"READ{idList}";
+            }
+        }
     }
 }
