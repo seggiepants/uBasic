@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -89,6 +90,9 @@ namespace uBasic
             fnTable.Add("RESET_COLOR", RESET_COLOR);
             fnTable.Add("LOCATE", LOCATE);
             fnTable.Add("CLS", CLS);
+            fnTable.Add("ASC", ASC);
+            fnTable.Add("BEEP", BEEP);
+            fnTable.Add("SOUND", SOUND);
         }
 
         // To be implemented:
@@ -130,6 +134,25 @@ namespace uBasic
             else
             {
                 throw new Exception("Parameter Error LEN requires a string or array to operate on.");
+            }
+        }
+
+        public static object? ASC(Stack<object?> stack)
+        {
+            bool success;
+            if (stack.Count > 0)
+            {
+                string? operand = GetOperand<string>(stack, out success);
+                if (operand != null && success)
+                {
+                    stack.Pop();
+                    return (int)operand[0];
+                }
+                return 0;
+            }
+            else
+            {
+                throw new Exception("Parameter Error ASC requires a string to operate on.");
             }
         }
 
@@ -498,7 +521,7 @@ namespace uBasic
                 stack.Pop();
                 try
                 {
-                    int ret = Convert.ToInt32(operand);
+                    int ret = (int) Math.Floor(Convert.ToDouble(operand));
                     return ret;
                 }
                 catch { };
@@ -772,6 +795,35 @@ namespace uBasic
             return null;
         }
 
+        private static object? BEEP(Stack<object?> stack)
+        {
+            // BEEP
+            Console.Beep();
+            return null;
+        }
+
+        private static object? SOUND(Stack<object?> stack)
+        {
+            // RMDIR pathname$
+            int? frequency = null;
+            int? duration = null;
+            Type[] allowed =
+            {
+                typeof(int), typeof(Int32), typeof(Int64), typeof(long)
+            };
+
+            if (stack.Count >= 2 && allowed.Contains(stack.Peek().GetType()))
+            {
+                frequency = (int?)stack.Pop();
+            }
+            if (stack.Count >= 1 && allowed.Contains(stack.Peek().GetType()))
+            {
+                duration = (int?)stack.Pop();
+            }
+            if (frequency != null && duration != null)
+                Console.Beep((int)frequency, (int)duration);
+            return null;
+        }
 
         private static T? GetOperand<T>(Stack<object?> stack, out bool success)
         {
