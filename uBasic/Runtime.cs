@@ -6,13 +6,20 @@ using System.Threading.Tasks;
 
 namespace uBasic
 {
+    public enum FileMode
+    {
+        INPUT,
+        OUTPUT,
+        APPEND
+    };
+
     public class FileReference
     {
         public string fileName { get; set; }
         StreamReader? sr;
         StreamWriter? sw;        
 
-        FileReference()
+        public FileReference()
         {
             sr = null;
             sw = null;
@@ -41,7 +48,7 @@ namespace uBasic
             }
         }
 
-        void OpenInput(string fileName)
+        public void OpenInput(string fileName)
         {
             if (!File.Exists(fileName))
                 throw new FileNotFoundException($"File not found: \"{fileName}\"");
@@ -49,47 +56,47 @@ namespace uBasic
             sr = new StreamReader(fileName);
         }
 
-        void OpenOutput(string fileName)
+        public void OpenOutput(string fileName, bool append)
         {
             Cleanup();
-            sw = new StreamWriter(fileName);
+            sw = new StreamWriter(fileName, append);
         }
 
-        void Close()
+        public void Close()
         {
             Cleanup();
         }
 
-        bool IsOutput() { return sw != null; }
-        bool IsInput() { return sr != null; }
+        public bool IsOutput() { return sw != null; }
+        public bool IsInput() { return sr != null; }
 
-        bool IsEOF()
+        public bool IsEOF()
         {
             if (sr != null)
                 return sr.EndOfStream;
             return false;
         }
 
-        void Write(string text)
+        public void Write(string text)
         {
             if (sw != null)
                 sw.Write(text);
         }
 
-        void WriteLine(string text)
+        public void WriteLine(string text)
         {
             if (sw != null)
                 sw.WriteLine(text);
         }
 
-        char Read()
+        public char Read()
         {
             if (sr != null && !sr.EndOfStream)
                 return (char)sr.Read();
             return '\0';
         }
 
-        string Read(int numChars)
+        public string Read(int numChars)
         {
             if (sr != null && !sr.EndOfStream)
             {
@@ -100,7 +107,7 @@ namespace uBasic
             return "";
         }
 
-        string ReadLine()
+        public string ReadLine()
         {
             if (sr != null && !sr.EndOfStream)
                 return sr.ReadLine() ?? "";
@@ -125,7 +132,7 @@ namespace uBasic
         public Stack<int> callStack;
         public List<Parser.AstData> dataSegment;
         int dataIndex, dataPtr;
-        Dictionary<int, FileReference> fileTable;
+        public Dictionary<int, FileReference> fileTable;
 
         public Runtime()
         {
@@ -147,10 +154,46 @@ namespace uBasic
             fileTable = new();
         }
 
+        ~Runtime()
+        {
+            fnTable.Clear();
+            symbolTable.Clear();
+            stack.Clear();
+            program.Clear();
+            lineNumbers.Clear();
+            lineLabels.Clear();
+            forStack.Clear();
+            ifStack.Clear();
+            callStack.Clear();
+            dataSegment.Clear();
+            FileCloseAll();
+            fileTable.Clear();
+        }
+
         public int FreeFile()
         {
             return (from int key in fileTable.Keys
                     select key).Max() + 1;
+        }
+
+        public void FileClose(int handle)
+        {
+            if (fileTable.ContainsKey(handle))
+            {
+                fileTable[handle].Close();
+                fileTable.Remove(handle);
+            }
+            else
+                throw new Exception($"No file with handle #{handle} found.");
+        }
+
+        public void FileCloseAll()
+        {
+            foreach(KeyValuePair<int, FileReference> pair in fileTable)
+            {
+                pair.Value.Close();
+            }
+            fileTable.Clear();
         }
 
         public void Clear()

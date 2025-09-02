@@ -450,6 +450,10 @@ namespace uBasic
                 return node.stmtDim.Interpret(runtime);
             else if (node.stmtEnd != null)
                 return node.stmtEnd.Interpret(runtime);
+            else if (node.stmtFileOpen != null)
+                return node.stmtFileOpen.Interpret(runtime);
+            else if (node.stmtFileClose != null)
+                return node.stmtFileClose.Interpret(runtime);
             else if (node.stmtFor != null)
                 return node.stmtFor.Interpret(runtime);
             else if (node.stmtForNext != null)
@@ -1147,6 +1151,61 @@ public static object? Interpret(this Parser.AstEnd node, Runtime runtime)
         public static object? Interpret(this Parser.AstRestore node, Runtime runtime)
         {
             runtime.DataRestore(node.lineLabel, node.lineNum);
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstFileOpen node, Runtime runtime)
+        {
+            FileReference file = new();
+            string? fileName = node.fileName != null ? (string?)node.fileName.Interpret(runtime) : null;
+            int fileNum = 0;
+            if (node.fileNum != null)
+                fileNum = node.fileNum ?? 0;
+            else if (node.fileNumber != null)
+                fileNum = (int?)node.fileNumber.Interpret(runtime) ?? 0;
+
+            if (fileName != null)
+            {
+                if (runtime.fileTable.ContainsKey(fileNum))
+                    throw new Exception($"File Number #{fileNum} is already in use.");
+
+                if (node.mode == FileMode.OUTPUT || node.mode == FileMode.APPEND)
+                {
+                    file.OpenOutput(fileName, node.mode == FileMode.APPEND);
+                }
+                else
+                {
+                    file.OpenInput(fileName);
+                }
+                runtime.fileTable.Add(fileNum, file);
+            }
+            else
+                throw new Exception($"Invalid filename \"{fileName}\"");
+            return OK;
+        }
+
+        public static object? Interpret(this Parser.AstFileClose node, Runtime runtime)
+        {
+            if (node.fileNum == null && node.fileNumber == null)
+            {
+                runtime.FileCloseAll();
+            }
+            else if (node.fileNum != null)
+                runtime.FileClose(node.fileNum ?? 0);
+            else if (node.fileNumber != null)
+            {
+                object? value = node.fileNumber.Interpret(runtime);
+                if (value == null)
+                    runtime.FileCloseAll();
+                else
+                {
+                    int intValue = Convert.ToInt32(value);
+                    if (intValue <= 0)
+                        runtime.FileCloseAll();
+                    else
+                        runtime.FileClose(intValue);
+                }
+            }
             return OK;
         }
 

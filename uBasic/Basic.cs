@@ -46,6 +46,9 @@ namespace uBasic
                 | <Constant> 
             */
             int i = Index;
+            Tuple<int, Parser.AstValue?> failure = new(Index, null);
+            if (i >= tokens.Count)
+                return failure;
             Token t = tokens[i];
             Parser.AstValue val = new Parser.AstValue(t);
 
@@ -637,6 +640,24 @@ namespace uBasic
                 return new Tuple<int, Parser.AstStatement?>(endStatement.Item1, statement);
             }
 
+            Tuple<int, Parser.AstFileOpen?> fileOpenStatement = ParseFileOpen(tokens, Index, runtime);
+            if (fileOpenStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(fileOpenStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(fileOpenStatement.Item1, statement);
+            }
+
+            Tuple<int, Parser.AstFileClose?> fileCloseStatement = ParseFileClose(tokens, Index, runtime);
+            if (fileCloseStatement.Item2 != null)
+            {
+                statement = new Parser.AstStatement(tokens[Index]);
+                statement.Set(fileCloseStatement.Item2);
+                runtime.program.Add(statement);
+                return new Tuple<int, Parser.AstStatement?>(fileCloseStatement.Item1, statement);
+            }
+
             Tuple<int, Parser.AstFor?> forStatement = ParseForStatment(tokens, Index, runtime);
             if (forStatement.Item2 != null)
             {
@@ -1165,7 +1186,7 @@ namespace uBasic
                 // Consume the let.
                 i++;
             }
-            
+
             // Array Ref or Variable
             if (i < tokens.Count && tokens[i].Type == Token_Type.TOKEN_IDENTIFIER)
             {
@@ -1202,7 +1223,7 @@ namespace uBasic
             Tuple<int, Parser.AstExpression?> result = ParseExpression(tokens, i, runtime);
             if (result.Item2 != null)
             {
-                ret.expression= result.Item2;
+                ret.expression = result.Item2;
                 i = result.Item1;
             }
             else
@@ -1499,7 +1520,7 @@ namespace uBasic
                     arrayAccess = ParseArrayAccess(tokens, i + 1, runtime);
                     if (arrayAccess.Item2 == null)
                     {
-                        variable = ParseValue(tokens, i + 1, runtime);                        
+                        variable = ParseValue(tokens, i + 1, runtime);
                     }
                 }
                 else
@@ -1580,7 +1601,7 @@ namespace uBasic
             string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP" };
             int i = Index;
             Tuple<int, Parser.AstFunctionCall?> failure = new(Index, null);
-            if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+            if (i >= tokens.Count || tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
             {
                 return failure;
             }
@@ -1589,7 +1610,7 @@ namespace uBasic
             if (noParameters.Contains(ret.function.ToUpperInvariant()))
                 return new Tuple<int, Parser.AstFunctionCall?>(i, ret);
 
-            if (tokens.Count > i & (tokens[i].Type == Token_Type.TOKEN_LPAREN))
+            if (tokens.Count > i && (tokens[i].Type == Token_Type.TOKEN_LPAREN))
             {
                 // Function call
                 Parser.AstExpressionList? args = new(tokens[i]);
@@ -1627,7 +1648,7 @@ namespace uBasic
         {
             int i = Index;
             Tuple<int, Parser.AstArrayAccess?> failure = new(i, null);
-            if (tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
+            if (i >= tokens.Count || tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)
             {
                 return failure;
             }
@@ -1635,7 +1656,7 @@ namespace uBasic
             ret.variable = tokens[i].Text;
             i++;
 
-            if (tokens[i].Type != Token_Type.TOKEN_LBRACKET)
+            if (i >= tokens.Count || tokens[i].Type != Token_Type.TOKEN_LBRACKET)
             {
                 return failure;
             }
@@ -1660,7 +1681,7 @@ namespace uBasic
                 }
             }
 
-            if (tokens[i].Type != Token_Type.TOKEN_RBRACKET)
+            if (i >= tokens.Count ||tokens[i].Type != Token_Type.TOKEN_RBRACKET)
             {
                 return failure;
             }
@@ -1800,8 +1821,106 @@ namespace uBasic
                     ret.set(tokenLine);
                     i++;
                 }
-            }                
+            }
             return new Tuple<int, Parser.AstRestore?>(i, ret);
+        }
+
+        public static Tuple<int, Parser.AstFileOpen?> ParseFileOpen(List<Token> tokens, int Index, Runtime runtime)
+        {
+            // OPEN file$ [FOR mode] AS [#]filenumber% 
+            Tuple<int, Parser.AstFileOpen?> failure = new Tuple<int, Parser.AstFileOpen?>(Index, null);
+            int i = Index;
+
+            if (tokens.Count <= i || tokens[i].Type != Token_Type.TOKEN_OPEN)
+                return failure;
+            i++;
+
+            Tuple<int, Parser.AstValue?> fileName = ParseValue(tokens, i, runtime);
+            if (fileName.Item2 == null)
+                return failure;
+            i = fileName.Item1;
+
+            if (tokens.Count <= i || tokens[i].Type != Token_Type.TOKEN_FOR)
+                return failure;
+            i++;
+
+            Token_Type[] allowed = { Token_Type.TOKEN_INPUT, Token_Type.TOKEN_OUTPUT, Token_Type.TOKEN_APPEND };
+            if (tokens.Count <= i || !allowed.Contains(tokens[i].Type))
+                return failure;
+            string mode = tokens[i].Text;
+            i++;
+
+            if (tokens.Count <= i || tokens[i].Type != Token_Type.TOKEN_AS)
+                return failure;
+            i++;
+
+            int? fileNum = null;
+            Parser.AstValue? fileNumVar = null;
+            if (i < tokens.Count && tokens[i].Type == Token_Type.TOKEN_FILENUM)
+            {
+                fileNum = Convert.ToInt32(tokens[i].Text.Substring(1));
+                i++;
+            }
+            else
+            {
+                Tuple<int, Parser.AstValue?> fileNumber = ParseValue(tokens, i, runtime);
+                if (fileNumber.Item2 == null)
+                    return failure;
+                fileNumVar = fileNumber.Item2;
+                i = fileNumber.Item1;
+            }
+            Parser.AstFileOpen fileOpen = new(tokens[Index]);
+            if (fileNum != null)
+            {
+                fileOpen.Set(fileName.Item2, mode, fileNum ?? 0);
+            }
+            else if (fileNumVar != null)
+            {
+                fileOpen.Set(fileName.Item2, mode, fileNumVar);
+            }
+            else
+            {
+                return failure;
+            }
+
+            return new Tuple<int, Parser.AstFileOpen?>(i, fileOpen);
+        }
+
+        public static Tuple<int, Parser.AstFileClose?> ParseFileClose(List<Token> tokens, int Index, Runtime runtime)
+        {
+            Tuple<int, Parser.AstFileClose?> failure = new Tuple<int, Parser.AstFileClose?>(Index, null);
+            int i = Index;
+            if (tokens.Count <= i || tokens[i].Type != Token_Type.TOKEN_CLOSE)
+                return failure;
+            i++;
+
+            int? fileNum = null;
+            Parser.AstValue? fileNumVar = null;
+            if (i < tokens.Count && tokens[i].Type == Token_Type.TOKEN_FILENUM)
+            {
+                fileNum = Convert.ToInt32(tokens[i].Text.Substring(1));
+                i++;
+            }
+            else
+            {
+                Tuple<int, Parser.AstValue?> fileNumber = ParseValue(tokens, i, runtime);
+                if (fileNumber.Item2 != null)
+                {
+                    fileNumVar = fileNumber.Item2;
+                    i = fileNumber.Item1;
+                }
+            }
+            Parser.AstFileClose fileClose = new(tokens[Index]);
+            if (fileNum != null)
+            {
+                fileClose.Set(fileNum);
+            }
+            else if (fileNumVar != null)
+            {
+                fileClose.Set(fileNumVar);
+            }
+
+            return new Tuple<int, Parser.AstFileClose?>(i, fileClose);
         }
     }
 }
