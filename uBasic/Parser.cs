@@ -812,6 +812,8 @@ namespace uBasic
             public AstData? stmtData;
             public AstDim? stmtDim;
             public AstEnd? stmtEnd;
+            public AstFileOpen? stmtFileOpen;
+            public AstFileClose? stmtFileClose;
             public AstFor? stmtFor;
             public AstForNext? stmtForNext;
             public AstFunctionCall? stmtFunctionCall;
@@ -836,6 +838,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -859,6 +863,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -881,6 +887,8 @@ namespace uBasic
                 stmtData = stmt;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -903,6 +911,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = stmt;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -926,6 +936,58 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = stmt;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
+                stmtReturn = null;
+            }
+
+            public void Set(AstFileOpen? stmt)
+            {
+                stmtComment = null;
+                stmtData = null; 
+                stmtDim = null;
+                stmtEnd = null;
+                stmtFileOpen = stmt;
+                stmtFileClose = null; 
+                stmtFor = null;
+                stmtForNext = null;
+                stmtFunctionCall = null;
+                stmtGosub = null;
+                stmtGoto = null;
+                stmtIf = null;
+                stmtIfElseIf = null;
+                stmtIfElse = null;
+                stmtIfEndIf = null;
+                stmtInput = null;
+                stmtLet = null;
+                stmtPrint = null;
+                stmtRead = null;
+                stmtRestore = null;
+                stmtReturn = null;
+            }
+
+            public void Set(AstFileClose? stmt)
+            {
+                stmtComment = null;
+                stmtData = null;
+                stmtDim = null;
+                stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = stmt;
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -946,9 +1008,11 @@ namespace uBasic
             public void Set(AstFor? stmt)
             {
                 stmtComment = null;
-                stmtData = null; 
+                stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null;
                 stmtFor = stmt;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -972,6 +1036,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = stmt;
                 stmtFunctionCall = null;
@@ -995,6 +1061,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = stmt;
@@ -1018,6 +1086,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1041,6 +1111,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1064,6 +1136,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1087,6 +1161,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1110,6 +1186,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1133,6 +1211,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1156,6 +1236,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1179,6 +1261,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1202,6 +1286,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1226,6 +1312,8 @@ namespace uBasic
                 stmtData = null; 
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1249,6 +1337,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1271,6 +1361,8 @@ namespace uBasic
                 stmtData = null;
                 stmtDim = null;
                 stmtEnd = null;
+                stmtFileOpen = null;
+                stmtFileClose = null; 
                 stmtFor = null;
                 stmtForNext = null;
                 stmtFunctionCall = null;
@@ -1302,6 +1394,12 @@ namespace uBasic
 
                 if (stmtEnd != null)
                     return stmtEnd;
+
+                if (stmtFileOpen != null)
+                    return stmtFileOpen;
+
+                if (stmtFileClose != null)
+                    return stmtFileClose;
 
                 if (stmtFor != null)
                     return stmtFor;
@@ -1361,6 +1459,10 @@ namespace uBasic
                     return $"{stmtDim}";
                 else if (stmtEnd != null)
                     return $"{stmtEnd}";
+                else if (stmtFileOpen != null)
+                    return $"{stmtFileOpen}";
+                else if (stmtFileClose != null)
+                    return $"{stmtFileClose}";
                 else if (stmtFor != null)
                     return $"{stmtFor}";
                 else if (stmtForNext != null)
@@ -2130,6 +2232,102 @@ namespace uBasic
             {
                 string idList = ids != null && ids.ids != null && ids.ids.Count > 0 ? $" {ids}" : "";
                 return $"READ{idList}";
+            }
+        }
+
+        public class AstFileOpen : AstNode
+        {
+            // OPEN file$ [FOR mode] AS [#]filenumber% 
+            public AstValue? fileName;
+            public FileMode mode;
+            public AstValue? fileNumber;
+            public int? fileNum;
+
+            public AstFileOpen(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                mode = FileMode.OUTPUT;
+                fileName = null;
+                fileNumber = null;
+            }
+
+            public void Set(AstValue fileName, string fileMode, AstValue fileNumber)
+            {
+                this.fileName = fileName;
+                this.mode = AstFileOpen.StringToFileMode(fileMode);
+                this.fileNumber = fileNumber;
+                this.fileNum = null;
+            }
+
+            public void Set(AstValue fileName, string fileMode, int fileNum)
+            {
+                this.fileName = fileName;
+                this.mode = AstFileOpen.StringToFileMode(fileMode);
+                this.fileNum = fileNum;
+                this.fileNumber = null;
+            }
+
+            public static FileMode StringToFileMode(string fileMode)
+            {
+                if (fileMode.ToUpperInvariant().Trim() == "INPUT")
+                    return FileMode.INPUT;
+                else if (fileMode.ToUpperInvariant().Trim() == "OUTPUT")
+                    return FileMode.OUTPUT;
+                else if (fileMode.ToUpperInvariant().Trim() == "APPEND")
+                    return FileMode.APPEND;
+                return FileMode.OUTPUT; // Default
+            }
+
+            public static String FileModeToString(FileMode fileMode)
+            {
+                string modeStr = "ERROR";
+                if (fileMode == FileMode.INPUT)
+                    modeStr = "INPUT";
+                else if (fileMode == FileMode.OUTPUT)
+                    modeStr = "OUTPUT";
+                else if (fileMode == FileMode.APPEND)
+                    modeStr = "APPEND";
+                return modeStr;
+            }
+
+            public override string ToString()
+            {
+                const string ERR_UNDEFINED = "ERROR_NOT_SPECIFIED";
+                string modeStr = FileModeToString(mode);
+                string fileNameStr = fileName != null ? fileName.ToString() : ERR_UNDEFINED;
+                string fileNumberStr = fileNumber != null ? fileNumber.ToString() : fileNum != null ? $"#{fileNum}" : ERR_UNDEFINED;
+
+                return $"OPEN {fileNameStr} FOR {modeStr} AS #{fileNumberStr}";
+            }
+        }
+
+        public class AstFileClose : AstNode
+        {
+            public AstValue? fileNumber;
+            public int? fileNum;
+            public AstFileClose(Token t) : base(t.LineNumber, t.ColumnNumber)
+            {
+                fileNumber = null;
+            }
+
+            public void Set(AstValue? fileNumber)
+            {
+                this.fileNumber = fileNumber;
+                this.fileNum = null;
+            }
+            public void Set(int? fileNum)
+            {
+                this.fileNumber = null;
+                this.fileNum = fileNum;
+            }
+
+            public override string ToString()
+            {
+                if (fileNum != null)
+                    return $"CLOSE #{fileNum.ToString()}";
+                else if (fileNumber != null)
+                    return $"CLOSE {fileNumber}";
+                else
+                    return "CLOSE";
             }
         }
     }
