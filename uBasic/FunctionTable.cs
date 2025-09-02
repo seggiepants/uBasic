@@ -91,6 +91,8 @@ namespace uBasic
             fnTable.Add("LOCATE", LOCATE);
             fnTable.Add("CLS", CLS);
             fnTable.Add("ASC", ASC);
+            fnTable.Add("CHR", CHR);
+            fnTable.Add("CHR$", CHR);
             fnTable.Add("BEEP", BEEP);
             fnTable.Add("SOUND", SOUND);
         }
@@ -153,6 +155,25 @@ namespace uBasic
             else
             {
                 throw new Exception("Parameter Error ASC requires a string to operate on.");
+            }
+        }
+
+        public static object? CHR(Stack<object?> stack)
+        {
+            bool success;
+            if (stack.Count > 0)
+            {
+                int? operand = GetOperand<int>(stack, out success);
+                if (operand != null & success)
+                {
+                    stack.Pop();
+                    return Convert.ToChar(operand).ToString();
+                }
+                return "";
+            }
+            else
+            {
+                throw new Exception("Parameter Error CHR requires a number to operate on.");
             }
         }
 

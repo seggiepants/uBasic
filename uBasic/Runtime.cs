@@ -6,6 +6,109 @@ using System.Threading.Tasks;
 
 namespace uBasic
 {
+    public class FileReference
+    {
+        public string fileName { get; set; }
+        StreamReader? sr;
+        StreamWriter? sw;        
+
+        FileReference()
+        {
+            sr = null;
+            sw = null;
+            fileName = "";
+        }
+
+        ~FileReference()
+        {
+            Cleanup();            
+        }
+
+        private void Cleanup()
+        {
+            if (sr != null)
+            {
+                sr.Close();
+                sr.Dispose();
+                sr = null;
+            }
+            else if (sw != null)
+            {
+                sw.Flush();
+                sw.Close();
+                sw.Dispose();
+                sw = null;
+            }
+        }
+
+        void OpenInput(string fileName)
+        {
+            if (!File.Exists(fileName))
+                throw new FileNotFoundException($"File not found: \"{fileName}\"");
+            Cleanup();
+            sr = new StreamReader(fileName);
+        }
+
+        void OpenOutput(string fileName)
+        {
+            Cleanup();
+            sw = new StreamWriter(fileName);
+        }
+
+        void Close()
+        {
+            Cleanup();
+        }
+
+        bool IsOutput() { return sw != null; }
+        bool IsInput() { return sr != null; }
+
+        bool IsEOF()
+        {
+            if (sr != null)
+                return sr.EndOfStream;
+            return false;
+        }
+
+        void Write(string text)
+        {
+            if (sw != null)
+                sw.Write(text);
+        }
+
+        void WriteLine(string text)
+        {
+            if (sw != null)
+                sw.WriteLine(text);
+        }
+
+        char Read()
+        {
+            if (sr != null && !sr.EndOfStream)
+                return (char)sr.Read();
+            return '\0';
+        }
+
+        string Read(int numChars)
+        {
+            if (sr != null && !sr.EndOfStream)
+            {
+                char[] buffer = new char[numChars];
+                sr.Read(buffer, 0, numChars);
+                return new string(buffer);
+            }
+            return "";
+        }
+
+        string ReadLine()
+        {
+            if (sr != null && !sr.EndOfStream)
+                return sr.ReadLine() ?? "";
+            return "";
+        }
+
+    }
+
     public class Runtime
     {
         public SymbolTable symbolTable;
@@ -22,6 +125,7 @@ namespace uBasic
         public Stack<int> callStack;
         public List<Parser.AstData> dataSegment;
         int dataIndex, dataPtr;
+        Dictionary<int, FileReference> fileTable;
 
         public Runtime()
         {
@@ -40,6 +144,13 @@ namespace uBasic
             dataSegment = new();
             dataIndex = 0;
             dataPtr = 0;
+            fileTable = new();
+        }
+
+        public int FreeFile()
+        {
+            return (from int key in fileTable.Keys
+                    select key).Max() + 1;
         }
 
         public void Clear()
