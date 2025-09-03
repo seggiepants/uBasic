@@ -1,0 +1,20 @@
+GOSUB A
+
+END
+
+A:
+PRINT "A - BEGIN"
+REM Test Lines Numbers and Labels
+GOSUB 100
+PRINT "A - END"
+RETURN
+
+100
+PRINT "B - BEGIN"
+GOSUB C
+PRINT "B - END"
+RETURN
+
+C:
+PRINT "WE MADE IT TO C!"
+RETURN
