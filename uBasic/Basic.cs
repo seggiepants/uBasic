@@ -1442,6 +1442,23 @@ namespace uBasic
             Parser.AstPrint ret = new Parser.AstPrint(tokens[i]);
             i++;
 
+            if (tokens[i].Type == Token_Type.TOKEN_FILENUM)
+            {
+                ret.fileNum = Convert.ToInt32(tokens[i].Text.Substring(1));
+                i++;
+                if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                    return failure;
+                i++;
+            }
+            else if (tokens[i].Type == Token_Type.TOKEN_FILEVAR)
+            {
+                ret.fileVar = tokens[i].Text.Substring(1);
+                i++;
+                if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                    return failure;
+                i++;
+            }
+
             Tuple<int, Parser.AstPrintList?> printList = ParsePrintList(tokens, i, runtime);
             if (printList.Item2 != null)
             {
@@ -1542,6 +1559,24 @@ namespace uBasic
             Parser.AstInput ret = new Parser.AstInput(tokens[i]);
             i++;
 
+            if (tokens[i].Type == Token_Type.TOKEN_FILENUM)
+            {
+                ret.fileNum = Convert.ToInt32(tokens[i].Text.Substring(1));
+                i++;
+                if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                    return failure;
+                i++;
+            }
+            else if (tokens[i].Type == Token_Type.TOKEN_FILEVAR)
+            {
+                ret.fileVar = tokens[i].Text.Substring(1);
+                i++;
+                if (tokens[i].Type != Token_Type.TOKEN_COMMA)
+                    return failure;
+                i++;
+            }
+
+
             // do we have a prompt
             string prompt = "";
             if (tokens.Count > i + 2 && tokens[i].Type == Token_Type.TOKEN_STRING && tokens[i + 1].Type == Token_Type.TOKEN_SEMICOLON)
@@ -1598,7 +1633,7 @@ namespace uBasic
 
         public static Tuple<int, Parser.AstFunctionCall?> ParseFunctionCall(List<Token> tokens, int Index, Runtime runtime)
         {
-            string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP" };
+            string[] noParameters = { "CLS", "CURDIR", "CONSOLE_WIDTH", "CONSOLE_HEIGHT", "CURSOR_LEFT", "CURSOR_TOP", "FREEFILE" };
             int i = Index;
             Tuple<int, Parser.AstFunctionCall?> failure = new(Index, null);
             if (i >= tokens.Count || tokens[i].Type != Token_Type.TOKEN_IDENTIFIER)

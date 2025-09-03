@@ -1894,6 +1894,8 @@ namespace uBasic
 
         public class AstPrint : AstNode
         {
+            public int? fileNum;
+            public string? fileVar;
             public AstPrintList? exps;
             public bool emitCrlf = true;
             Token saved;
@@ -1901,6 +1903,8 @@ namespace uBasic
             {
                 exps = null;
                 saved = t;
+                fileNum = null;
+                fileVar = null;
             }
 
             public void Set(AstPrintList printList)
@@ -1962,6 +1966,8 @@ namespace uBasic
 
         public class AstInput : AstNode
         {
+            public int? fileNum;
+            public string? fileVar;
             public AstIDList? ids;
             public string prompt = "";
             Token saved;
@@ -1970,6 +1976,8 @@ namespace uBasic
                 ids = null;
                 prompt = "";
                 saved = t;
+                fileNum = null;
+                fileVar = null;
             }
 
             public void Set(string prompt)

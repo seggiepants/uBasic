@@ -172,6 +172,8 @@ namespace uBasic
 
         public int FreeFile()
         {
+            if (fileTable.Keys.Count == 0) return 1;
+
             return (from int key in fileTable.Keys
                     select key).Max() + 1;
         }

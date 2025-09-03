@@ -764,20 +764,57 @@ namespace uBasic
 
         public static object? Interpret(this Parser.AstPrint node, Runtime runtime)
         {
+            bool printToFile = node.fileNum != null || node.fileVar != null;
+            int fileNum = 0;
+            FileReference? fileRef = null;
+            if (node.fileNum != null)
+                fileNum = (int)node.fileNum;
+            else if (node.fileVar != null)
+            {
+                object? obj = runtime.symbolTable.Get(node.fileVar);
+                if (obj != null)
+                    fileNum = (int)obj;
+            }
+            if (printToFile)
+            {
+                fileRef = runtime.fileTable[fileNum];
+            }
+
             if (node.exps == null || node.exps.exps == null || node.exps.exps.Count == 0)
             {
-                if (node.emitCrlf)
-                    Console.WriteLine("");
+                if (fileRef != null)
+                {
+                    if (node.emitCrlf)
+                        fileRef.WriteLine("");
+                    else
+                        fileRef.Write("");
+                }
                 else
-                    Console.Write("");
+                {
+                    if (node.emitCrlf)
+                        Console.WriteLine("");
+                    else
+                        Console.Write("");
+                }
             }
             else
             {
-                foreach (AstExpression exp in node.exps.exps)
-                    Console.Write(exp.Interpret(runtime));
+                if (fileRef != null)
+                {
+                    foreach (AstExpression exp in node.exps.exps)
+                        fileRef.Write($"{exp.Interpret(runtime)}");
 
-                if (node.emitCrlf)
-                    Console.WriteLine("");
+                    if (node.emitCrlf)
+                        fileRef.WriteLine("");
+                }
+                else
+                { 
+                    foreach (AstExpression exp in node.exps.exps)
+                        Console.Write(exp.Interpret(runtime));
+
+                    if (node.emitCrlf)
+                        Console.WriteLine("");
+                }
             }
             return OK;
         }
@@ -802,14 +839,37 @@ namespace uBasic
             if (node.ids == null || node.ids.ids == null || node.ids.ids.Count == 0)
                 return "";
 
+            bool printToFile = node.fileNum != null || node.fileVar != null;
+            int fileNum = 0;
+            FileReference? fileRef = null;
+            if (node.fileNum != null)
+                fileNum = (int)node.fileNum;
+            else if (node.fileVar != null)
+            {
+                object? obj = runtime.symbolTable.Get(node.fileVar);
+                if (obj != null)
+                    fileNum = (int)obj;
+            }
+            if (printToFile)
+            {
+                fileRef = runtime.fileTable[fileNum];
+            }
+
             string? inputLine = null;
 
             while (inputLine == null)
             {
-                if (node.prompt.Length > 0)
-                    Console.Write(node.prompt);
+                if (fileRef != null)
+                {
+                    inputLine = fileRef.ReadLine();
+                }
+                else
+                {
+                    if (node.prompt.Length > 0)
+                        Console.Write(node.prompt);
 
-                inputLine = Console.ReadLine();
+                    inputLine = Console.ReadLine();
+                }
                 if (inputLine != null)
                 {
                     if (node.ids.ids.Count == 1)
