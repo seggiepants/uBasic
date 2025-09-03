@@ -11,7 +11,7 @@ namespace uBasic
     // Func<Stack<int>, int> fn
     public class FunctionTable
     {
-        static Dictionary<string, Func<Stack<object?>, object?>> fnTable = new();
+        static Dictionary<string, Func<Stack<object?>, Runtime, object?>> fnTable = new();
         static Random r;
 
         public FunctionTable()
@@ -22,7 +22,7 @@ namespace uBasic
 
         public object? Call(string name, Parser.AstExpressionList? args, Runtime runtime)
         {
-            bool hasFunction = fnTable.TryGetValue(name.ToUpperInvariant(), out Func<Stack<object?>, object?>? fn);
+            bool hasFunction = fnTable.TryGetValue(name.ToUpperInvariant(), out Func<Stack<object?>, Runtime, object?>? fn);
             if (hasFunction && fn != null)
             {
                 if (args != null && args.expList != null)
@@ -35,7 +35,7 @@ namespace uBasic
                         runtime.stack.Push(exp.Interpret(runtime));
                     }
                 }
-                return fn(runtime.stack);
+                return fn(runtime.stack, runtime);
             }
             else
             {
@@ -95,6 +95,9 @@ namespace uBasic
             fnTable.Add("CHR$", CHR);
             fnTable.Add("BEEP", BEEP);
             fnTable.Add("SOUND", SOUND);
+            fnTable.Add("EOF", EOF);
+            fnTable.Add("FREEFILE", FREEFILE);
+            fnTable.Add("FILEEXISTS", FILEEXISTS);
         }
 
         // To be implemented:
@@ -104,8 +107,6 @@ namespace uBasic
         // STRING/STRING$
         // REPLACE/REPLACE$
         // STRREVERSE/STRREVERSE$
-        // ASC
-        // CHR/CHR$
         // SQR -- Square Root
         // FIX -- Convert to Integer dumping the decimal part.
         // ATN -- Arc Tangent
@@ -114,11 +115,10 @@ namespace uBasic
         // SGN -- 1 = Positive, 0 = Zero, -1 = Negative
         // EXP -- e ^ X
         // LOG -- natural logarithm
-        // BEEP
-        // SOUND
+        // MOD
         // -- MORE TO COME --
 
-        public static object? LEN(Stack<object?> stack)
+        public static object? LEN(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             if (stack.Count > 0)
@@ -139,7 +139,7 @@ namespace uBasic
             }
         }
 
-        public static object? ASC(Stack<object?> stack)
+        public static object? ASC(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             if (stack.Count > 0)
@@ -158,7 +158,7 @@ namespace uBasic
             }
         }
 
-        public static object? CHR(Stack<object?> stack)
+        public static object? CHR(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             if (stack.Count > 0)
@@ -177,7 +177,7 @@ namespace uBasic
             }
         }
 
-        public static object? STR(Stack<object?> stack)
+        public static object? STR(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             object? text;
@@ -192,7 +192,7 @@ namespace uBasic
                 return text.ToString();
         }
 
-        public static object? LTRIM(Stack<object?> stack)
+        public static object? LTRIM(Stack<object?> stack, Runtime runtime)
         {
 
             bool success;
@@ -208,7 +208,7 @@ namespace uBasic
 
         }
 
-        public static object? RTRIM(Stack<object?> stack)
+        public static object? RTRIM(Stack<object?> stack, Runtime runtime)
         {
 
             bool success;
@@ -223,7 +223,7 @@ namespace uBasic
             return text.TrimEnd();
         }
 
-        public static object? TRIM(Stack<object?> stack)
+        public static object? TRIM(Stack<object?> stack, Runtime runtime)
         {
 
             bool success;
@@ -238,7 +238,7 @@ namespace uBasic
             return text.Trim();
         }
 
-        public static object? MID(Stack<object?> stack)
+        public static object? MID(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             int? charCount = -1;
@@ -273,7 +273,7 @@ namespace uBasic
             }
         }
 
-        public static object? LEFT(Stack<object?> stack)
+        public static object? LEFT(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             int? charCount = 0;
@@ -301,7 +301,7 @@ namespace uBasic
             }
         }
 
-        public static object? RIGHT(Stack<object?> stack)
+        public static object? RIGHT(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             int? charCount = 0;
@@ -332,7 +332,7 @@ namespace uBasic
             }
         }
 
-        public static object? UCASE(Stack<object?> stack)
+        public static object? UCASE(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             string? text;
@@ -353,7 +353,7 @@ namespace uBasic
             }
         }
 
-        public static object? LCASE(Stack<object?> stack)
+        public static object? LCASE(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             string? text;
@@ -374,7 +374,7 @@ namespace uBasic
             }
         }
 
-        public static object? SIN(Stack<object?> stack)
+        public static object? SIN(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             double? operand;
@@ -404,7 +404,7 @@ namespace uBasic
             }
         }
 
-        public static object? COS(Stack<object?> stack)
+        public static object? COS(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             double? operand;
@@ -434,7 +434,7 @@ namespace uBasic
             }
         }
 
-        public static object? TAN(Stack<object?> stack)
+        public static object? TAN(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             double? operand;
@@ -464,7 +464,7 @@ namespace uBasic
             }
         }
 
-        public static object? ABS(Stack<object?> stack)
+        public static object? ABS(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             double? operand;
@@ -488,7 +488,7 @@ namespace uBasic
             }
         }
 
-        public static object? SPACE(Stack<object?> stack)
+        public static object? SPACE(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             int? operand;
@@ -512,7 +512,7 @@ namespace uBasic
             }
         }
 
-        private static object? RND(Stack<object?> stack)
+        private static object? RND(Stack<object?> stack, Runtime runtime)
         {
             object? throwAway;
 
@@ -531,7 +531,7 @@ namespace uBasic
             return r.NextDouble();            
         }
 
-        private static object? INT(Stack<object?> stack)
+        private static object? INT(Stack<object?> stack, Runtime runtime)
         {
             bool success;
             object? operand;
@@ -551,7 +551,7 @@ namespace uBasic
         }
 
         // Console operations
-        private static object? TAB(Stack<object?> stack)
+        private static object? TAB(Stack<object?> stack, Runtime runtime)
         {
             // TAB(TabStop)
             bool success;
@@ -575,33 +575,33 @@ namespace uBasic
             return "";
         }
 
-        public static object? CLS(Stack<object?> stack)
+        public static object? CLS(Stack<object?> stack, Runtime runtime)
         {
             Console.Clear();
             return null;
         }
 
-        private static object? CURSOR_LEFT(Stack<object?> stack)
+        private static object? CURSOR_LEFT(Stack<object?> stack, Runtime runtime)
         {
             return Console.CursorLeft;
         }
 
-        private static object? CURSOR_TOP(Stack<object?> stack)
+        private static object? CURSOR_TOP(Stack<object?> stack, Runtime runtime)
         {
             return Console.CursorTop;
         }
 
-        private static object? CONSOLE_WIDTH(Stack<object?> stack)
+        private static object? CONSOLE_WIDTH(Stack<object?> stack, Runtime runtime)
         {
             return Console.WindowWidth;
         }
 
-        private static object? CONSOLE_HEIGHT(Stack<object?> stack)
+        private static object? CONSOLE_HEIGHT(Stack<object?> stack, Runtime runtime)
         {
             return Console.WindowHeight;
         }
 
-        private static object? COLOR(Stack<object?> stack)
+        private static object? COLOR(Stack<object?> stack, Runtime runtime)
         {
             // COLOR fg, [bg]
             int? fg = null;
@@ -627,13 +627,13 @@ namespace uBasic
             return null;
         }
 
-        private static object? RESET_COLOR(Stack<object?> stack)
+        private static object? RESET_COLOR(Stack<object?> stack, Runtime runtime)
         {
             Console.ResetColor();
             return null;
         }
 
-        private static object? LOCATE(Stack<object?> stack)
+        private static object? LOCATE(Stack<object?> stack, Runtime runtime)
         {
             // COLOR fg, [bg]
             int? x = null;
@@ -657,7 +657,7 @@ namespace uBasic
 
         // All of the file handling functions are going to be functions now 
         // This requires them to call with parenthesis but it frees up the lexer and parser sooo much.
-        private static object? CHDIR(Stack<object?> stack)
+        private static object? CHDIR(Stack<object?> stack, Runtime runtime)
         {
             // CHDIR pathname$
             string? pathName = null;
@@ -673,13 +673,13 @@ namespace uBasic
             return Directory.GetCurrentDirectory();
         }
 
-        private static object? CURDIR(Stack<object?> stack)
+        private static object? CURDIR(Stack<object?> stack, Runtime runtime)
         {
             // CHDIR pathname$
             return Directory.GetCurrentDirectory();
         }
 
-        private static object? FILES(Stack<object?> stack)
+        private static object? FILES(Stack<object?> stack, Runtime runtime)
         {
             // FILES fileSpec$
             // ZZZ - I kind of want to return a string array instead of print to the console.
@@ -709,7 +709,7 @@ namespace uBasic
             return string.Join('\n', Directory.GetFiles(path, pattern));
         }
 
-        private static object? KILL(Stack<object?> stack)
+        private static object? KILL(Stack<object?> stack, Runtime runtime)
         {
             // KILL fileSpec$ -- may include *, and ? wildcards.
             string? fileSpec = null;
@@ -742,7 +742,7 @@ namespace uBasic
             return null;
         }
 
-        private static object? MKDIR(Stack<object?> stack)
+        private static object? MKDIR(Stack<object?> stack, Runtime runtime)
         {
             // MKDIR pathname$
             string? pathName = null;
@@ -763,7 +763,7 @@ namespace uBasic
             return pathName;
         }
 
-        private static object? NAME(Stack<object?> stack)
+        private static object? NAME(Stack<object?> stack, Runtime runtime)
         {
             // NAME oldspec$ AS newspec$ -- may include path so this works as move too.
             string? source = null;
@@ -794,7 +794,7 @@ namespace uBasic
             return target;
         }
 
-        private static object? RMDIR(Stack<object?> stack)
+        private static object? RMDIR(Stack<object?> stack, Runtime runtime)
         {
             // RMDIR pathname$
             string? pathName = null;
@@ -816,14 +816,14 @@ namespace uBasic
             return null;
         }
 
-        private static object? BEEP(Stack<object?> stack)
+        private static object? BEEP(Stack<object?> stack, Runtime runtime)
         {
             // BEEP
             Console.Beep();
             return null;
         }
 
-        private static object? SOUND(Stack<object?> stack)
+        private static object? SOUND(Stack<object?> stack, Runtime runtime)
         {
             // RMDIR pathname$
             int? frequency = null;
@@ -844,6 +844,38 @@ namespace uBasic
             if (frequency != null && duration != null)
                 Console.Beep((int)frequency, (int)duration);
             return null;
+        }
+
+        private static object? EOF(Stack<object?> stack, Runtime runtime)
+        {
+            Type[] allowed = { typeof(int), typeof(Int32), typeof(Int64), typeof(long) };
+            if (stack.Count >= 1 && allowed.Contains(stack.Peek().GetType()))
+            {
+                int? fileNum = (int?)stack.Pop();
+                if (fileNum != null && runtime.fileTable.ContainsKey((int)fileNum))
+                {
+                    return runtime.fileTable[(int)fileNum].IsEOF();
+                }
+            }
+            return true;
+        }
+
+        private static object? FREEFILE(Stack<object?> stack, Runtime runtime)
+        {
+            return runtime.FreeFile();
+        }
+
+        private static object? FILEEXISTS(Stack<object?> stack, Runtime runtime)
+        {
+            string? fileName = null;
+
+            if (stack.Count >= 1 && stack.Peek().GetType() == typeof(string))
+            {
+                fileName = (string?)stack.Pop();
+                return File.Exists(fileName);
+            }
+
+            return false;
         }
 
         private static T? GetOperand<T>(Stack<object?> stack, out bool success)
